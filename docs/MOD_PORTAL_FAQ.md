@@ -27,15 +27,21 @@ game speed affect how quickly the limit is reached in real time.
 ## What happens if a circuit signal disappears?
 
 An absent signal in an intact selected network has value zero, as in normal
-circuit logic. Removing the selected pole or its red/green connection instead
+circuit logic. Removing the selected source entity or its chosen connection instead
 causes an offline safety pause for an enabled rule. Disable the rule or repair
 its source before acknowledging the alarm.
 
-## Why select a pole when the GUI shows a network ID?
+## Can I select a network between a chest and an inserter?
 
-The pole is a saved access point to the circuit network. The GUI reads the current
-network ID there rather than using an ID as a permanent world-wide lookup key.
-The source coordinates are also saved for alarm-location viewing.
+Yes. Any connected circuit entity can serve as the network access point. Select
+one entity or drag an area around several. The same network is listed once;
+copper power connections are ignored. A single network is selected directly.
+If several networks are found, explicitly choose red/green and input/output in
+the dropdown. A combinator can expose four distinct networks.
+
+The mod stores the exact entity and connector, not only the displayed network
+ID. Existing pole-based rules keep their original red/green connection. Source
+coordinates remain saved for alarm-location viewing.
 
 ## Can I inspect an alarm on another planet or platform?
 

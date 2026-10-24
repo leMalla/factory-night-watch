@@ -3,7 +3,7 @@
 Keep your cooperative Factorio factory running while everyone is offline, with
 configurable safety pauses when something needs attention.
 
-**Release candidate 0.3.4 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
+**Release candidate 0.3.5 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
 
 [Deutsche Anleitung](docs/README.de.md) · [Validation](docs/TESTS.txt) ·
 [Changelog](mod/changelog.txt)
@@ -12,10 +12,10 @@ configurable safety pauses when something needs attention.
 
 - Pause on structure destruction, an empty research queue, or an offline time limit.
 - Default time limit: 7 simulation days; configurable or unlimited.
-- Optional named circuit conditions: select a wired pole, red/green network,
+- Optional named circuit conditions: select a connected circuit entity and its exact network/connector,
   signal and quality, comparison, threshold and continuous delay.
-- Live signal values and network IDs; offline safety pause if an enabled rule loses its pole or cable.
-- Source coordinates stay saved for alarm-location viewing even after a pole is removed.
+- Live signal values and network IDs; offline safety pause if an enabled rule loses its source entity or connection.
+- Source coordinates stay saved for alarm-location viewing even after the source entity is removed.
 - Bottom-right native shortcut with Overview, Rules and Advanced tabs.
 - Admin-only changes, save/discard drafts and confirmation before a test pause.
 - Persistent safety alarms, offline timers and circuit rules across save/reload.
@@ -34,7 +34,7 @@ Build the distribution using Python 3 (standard library only):
 python3 tools/build.py
 ```
 
-Copy `dist/factory-night-watch_0.3.4.zip` into each client's Factorio `mods`
+Copy `dist/factory-night-watch_0.3.5.zip` into each client's Factorio `mods`
 directory without extracting it. Remove older ZIP versions and restart Factorio.
 All clients and the server need the same version. This development build is not
 yet published on the Factorio Mod Portal.
@@ -62,13 +62,14 @@ files without touching a server.
 
 ## Circuit conditions
 
-Under **Advanced**, add a condition and select a network by dragging a small box
-around one wired electric pole. Choose red or green, a signal, an operator and a
+Under **Advanced**, add a condition and select a network by dragging a box around connected circuit entities. The same network is listed
+once. A single network is selected directly; multiple networks require an explicit
+choice including red/green and input/output. Then choose a signal, an operator and a
 threshold. Set how many consecutive simulation seconds it must remain true.
 Save the draft to activate it. Put complex AND/OR logic in ordinary combinators.
 
 Rules are sampled once per simulation second. An absent signal in an intact
-network reads zero. A missing source or cable triggers a safety pause while
+network reads zero. A missing source entity or selected connector network triggers a safety pause while
 offline. Online, rules only show their live state. Multiple enabled rules act
 as OR: any one can pause the world. Clear the cause before acknowledging.
 
@@ -109,9 +110,9 @@ Portal drafts: [description](docs/MOD_PORTAL.md) and [FAQ](docs/MOD_PORTAL_FAQ.m
 ## Release readiness
 
 Three independent pre-release reviews covered runtime behavior, GUI/state handling,
-and packaging/installer recovery. See [the review record](docs/RELEASE_REVIEW.md)
-and [validation details](docs/TESTS.txt). The maintainer confirmed the 0.3.3 GUI
-in a real client; the 0.3.4 review fixes need one final live smoke test.
+and packaging/installer recovery. See [the 0.3.4 review record](docs/RELEASE_REVIEW.md)
+and [validation details](docs/TESTS.txt). The maintainer confirmed the 0.3.4 GUI
+in a real client; the 0.3.5 network-selection extension needs one final live smoke test.
 Backups remain necessary. There is no separate platform-hub health rule.
 
 Licensed under the [MIT License](LICENSE). Copyright (c) 2026 dermalla.

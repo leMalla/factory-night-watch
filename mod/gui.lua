@@ -2,7 +2,7 @@ local G={}
 local C=require("circuits")
 local callbacks={}
 local ROOT="fnw_window"
-local LAYOUT=1
+local LAYOUT=2
 -- Suppress only synchronous close notifications caused by our own teardown.
 local internal_close={}
 local build
@@ -71,7 +71,27 @@ local function network_caption(r)
   if not r.entity then return tr("no-network") end
   local network,err=C.network(r,callbacks.eligible)
   if not network then return tr(err) end
-  return tr("network-label",network.network_id,tr(r.wire==2 and "green" or "red"),r.entity.surface.name)
+  return tr("network-label",network.network_id,tr(r.wire==2 and "green" or "red"),tr(C.port(r),C.connector_id(r)),r.entity.surface.name)
+end
+local function network_option(r)
+  local network,err=C.network(r,callbacks.eligible)
+  if not network then return tr(err) end
+  return tr("network-option",tr(r.wire==2 and "green" or "red"),tr(C.port(r),C.connector_id(r)),network.network_id,r.entity.surface.name)
+end
+local function choices(r)
+  if not r.choices then r.choices=C.candidates(r.entity and r.entity.valid and {r.entity} or {},callbacks.eligible,r) or {} end
+  local items={tr("choose-network")};local selected=1
+  for i,option in ipairs(r.choices) do
+    items[#items+1]=network_option(option)
+    if option.entity==r.entity and C.connector_id(option)==C.connector_id(r) then selected=i+1 end
+  end
+  return items,selected
+end
+local function choose(r,option)
+  r.entity=option and option.entity or nil
+  r.connector=option and option.connector or nil
+  r.wire=option and option.wire or 1
+  r.place=option and C.location(option) or nil
 end
 local function circuit_editor(parent,p,i,r)
   local box=parent.add{type="frame",direction="vertical",style="inside_shallow_frame"}
@@ -83,7 +103,11 @@ local function circuit_editor(parent,p,i,r)
   button(source,"fnw_select_"..i,"select-network",true)
   local l=source.add{type="label",name="fnw_c_network_"..i,caption=network_caption(r)}
   l.style.width=330;l.style.single_line=false
-  row(box,"wire",{type="drop-down",name="fnw_c_wire_"..i,items={tr("red"),tr("green")},selected_index=r.wire})
+  local items,selected=choices(r)
+  local network_row=box.add{type="flow",direction="vertical"}
+  network_row.add{type="label",caption=tr("network")}
+  local selector=network_row.add{type="drop-down",name="fnw_c_connection_"..i,items=items,selected_index=selected,tags={fnw_edit=true}}
+  selector.style.width=520
   row(box,"signal",{type="choose-elem-button",name="fnw_c_signal_"..i,elem_type="signal",signal=r.signal})
   row(box,"operator",{type="drop-down",name="fnw_c_op_"..i,items=C.operators,selected_index=(function() for n,v in ipairs(C.operators) do if v==r.op then return n end end return 6 end)()})
   row(box,"threshold",{type="textfield",name="fnw_c_threshold_"..i,text=tostring(r.threshold)})
@@ -128,6 +152,7 @@ function G.refresh(p)
   find(f,"fnw_permissions").caption=tr(p.admin and "admin" or "read-only")
   find(f,"fnw_apply").enabled=p.admin and d.dirty
   find(f,"fnw_reload").enabled=d.dirty
+  find(f,"fnw_feedback").caption=d.feedback or ""
   find(f,"fnw_changes").caption=tr(d.dirty and "unsaved" or "clean")
   find(f,"fnw_confirm_panel").visible=d.confirm~=nil
   find(f,"fnw_confirmation_text").caption=tr(d.confirm=="test" and "test-warning" or "discard-warning")
@@ -138,6 +163,9 @@ function G.refresh(p)
   permissions(f)
   for i,r in ipairs(d.circuits) do
     find(f,"fnw_c_network_"..i).caption=network_caption(r)
+    local items,selected=choices(r)
+    local dropdown=find(f,"fnw_c_connection_"..i)
+    dropdown.items=items;dropdown.selected_index=selected;dropdown.enabled=p.admin and #items>1
     local value,problem=C.read(r,callbacks.eligible)
     local live=(s.circuits or {})[i]
     local text
@@ -302,7 +330,10 @@ local function changed(event)
     if not field or not d.circuits[index] then return end
     local r=d.circuits[index]
     if field=="enabled" then r.enabled=e.state
-    elseif field=="wire" then r.wire=e.selected_index
+    elseif field=="connection" then
+      local option=(r.choices or {})[e.selected_index-1]
+      if option and not C.network(option,callbacks.eligible) then feedback(p,"network-lost");G.refresh(p);return end
+      choose(r,option)
     elseif field=="signal" then r.signal=e.elem_value
     elseif field=="op" then r.op=C.operators[e.selected_index]
     else r[field]=e.text end
@@ -359,14 +390,14 @@ local function selected(e)
   if e.item~="fnw-select-network" then return end
   local p=game.get_player(e.player_index);local d=ui(p)
   if not p.admin or not d.selecting or not d.circuits[d.selecting] then return end
-  if #e.entities~=1 or not callbacks.eligible(e.entities[1]) then p.print(tr("select-one"));return end
-  local pole=e.entities[1]
-  if not pole.get_circuit_network(defines.wire_connector_id.circuit_red) and not pole.get_circuit_network(defines.wire_connector_id.circuit_green) then p.print(tr("no-cable"));return end
+  local options,err=C.candidates(e.entities,callbacks.eligible)
+  if not options then p.print(tr(err));return end
+  if #options==0 then p.print(tr("no-cable"));return end
   local r=d.circuits[d.selecting]
-  r.entity=pole;r.place=C.location(r)
-  local chosen=r.wire==2 and defines.wire_connector_id.circuit_green or defines.wire_connector_id.circuit_red
-  if not pole.get_circuit_network(chosen) then r.wire=r.wire==2 and 1 or 2 end
+  r.choices=options
+  choose(r,#options==1 and options[1] or nil)
   d.dirty=true;d.selecting=nil
+  d.feedback=#options>1 and tr("multiple-networks",#options) or nil
   p.clear_cursor();build(p)
 end
 script.on_event(defines.events.on_player_selected_area,selected)

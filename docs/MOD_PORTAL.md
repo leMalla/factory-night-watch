@@ -39,7 +39,9 @@ game and Space Age on Factorio 2.1; tested with Factorio 2.1.23.
 - **Offline time limit:** stop after a configurable offline duration. Default:
   7 simulation days. The limit can be disabled.
 - **Circuit conditions:** monitor a signal on a red or green circuit network.
-  Choose the signal and quality, comparison, threshold and continuous delay.
+  Select connected circuit entities; explicitly choose red/green and input/output
+  if several networks are found. Choose the signal and quality, comparison,
+  threshold and continuous delay.
   Use ordinary combinators for more complex logic.
 
 Rules trigger only while nobody is connected. Any connected player, including
@@ -59,7 +61,7 @@ made by another admin.
 
 Circuit rules show the current network ID, wire colour and surface. The source
 position is stored separately, so **View alarm location** can open remote view
-even after the selected pole has disappeared. Viewing the location does not
+even after the selected source entity has disappeared. Viewing the location does not
 release the pause or teleport your character.
 
 ## Pause behavior
@@ -89,7 +91,7 @@ surface-name exclusions are configurable.
 
 This mod reacts to detected events; it does not make buildings invulnerable,
 predict attacks or undo damage. Circuit rules are sampled once per simulation
-second. An enabled rule with a missing pole or selected cable network triggers
+second. An enabled rule with a missing source entity or selected connector network triggers
 an offline safety pause; an absent signal in an intact network reads zero.
 
 Up to three rotating emergency saves can be requested **after** an alarm. These

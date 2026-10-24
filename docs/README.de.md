@@ -1,4 +1,4 @@
-# Factory Night Watch 0.3.4
+# Factory Night Watch 0.3.5
 
 Offline production for cooperative Factorio 2.1.23 multiplayer servers, including Space Age.
 German and English settings, GUI, commands and safety messages. Author: dermalla.
@@ -46,12 +46,14 @@ Regel für die Restgesundheit des Plattform-Hubs mehr.
 ### Eigene Schaltungen
 
 1. Unter **Erweitert → Schaltung hinzufügen** einen Namen vergeben.
-2. **Netz auswählen** anklicken und einen kleinen Rahmen um genau einen mit Schaltungskabel
-   verbundenen Strommast ziehen. Q bricht die Auswahl ab und öffnet den erhaltenen Entwurf.
-3. Rot oder Grün auswählen. Die Netze werden getrennt gelesen, ohne sie zusammenzurechnen.
+2. **Netz auswählen** anklicken und einen Rahmen um verbundene Schaltungsobjekte
+   ziehen, etwa Kisten, Inserter, Kombinatoren oder Strommasten. Q bricht die Auswahl ab.
+3. Ein einziges gefundenes Netz wird direkt übernommen. Bei mehreren Netzen im
+   Dropdown ausdrücklich wählen: Rot/Grün, Eingang/Ausgang, Netz-ID und Welt.
+   Dasselbe Netz wird bei einer Bereichsauswahl nur einmal aufgeführt.
    Angezeigt wird die aktuelle Schaltungsnetz-ID mit Kabelfarbe und Planet/Plattform.
    Die Koordinaten bleiben intern gespeichert, damit der Kartensprung auch nach
-   dem Verlust des ausgewählten Masts noch funktioniert.
+   dem Verlust des ausgewählten Objekts noch funktioniert.
 4. Ein Gegenstands-, Flüssigkeits- oder virtuelles Signal mit gewünschter Qualität wählen.
 5. Vergleich (`<`, `≤`, `=`, `≠`, `≥`, `>`), ganzzahligen Wert und Wartezeit eintragen.
 6. **Speichern**. Bis dahin bleibt die Regel ein Entwurf.
@@ -63,7 +65,7 @@ Regeln nur als Live-Anzeige und sammeln keine Offline-Wartezeit.
 
 Prüfung einmal pro simulierte Sekunde, daher auch bei Wartezeit 0 bis etwa eine Sekunde Latenz.
 Eine nicht mehr erfüllte Bedingung setzt die laufende Wartezeit zurück. Ein nicht vorhandenes
-Signal in einem intakten Netz hat den Wert 0. Verschwindet dagegen der registrierte Strommast
+Signal in einem intakten Netz hat den Wert 0. Verschwindet dagegen das registrierte Schaltungsobjekt
 oder das gewählte Kabelnetz, wird bei aktiver Regel offline eine Schutzpause ausgelöst.
 Die GUI zeigt solche Probleme auch online. Quelle reparieren/neu auswählen oder Regel deaktivieren.
 Eine deaktivierte Regel mit verlorener Quelle kann gespeichert oder entfernt werden.
@@ -96,7 +98,7 @@ Der Installer enthält die ZIP bereits; Download-Zugangsdaten sind nicht nötig.
    mit neuestem Spielstand/Mods/Konfiguration an, ersetzt alte Mod-ZIPs, setzt `auto_pause=false`
    und prüft den Serverstart. Andere Container werden nicht bearbeitet.
 4. Auf ALLEN Clients die alte ZIP aus dem Mods-Ordner entfernen und die unveränderte neue
-   `factory-night-watch_0.3.4.zip` nach `%APPDATA%\Factorio\mods` kopieren. Nicht entpacken.
+   `factory-night-watch_0.3.5.zip` nach `%APPDATA%\Factorio\mods` kopieren. Nicht entpacken.
    Factorio neu starten. Alle Spieler und der Server brauchen dieselbe Version.
 
 Alternativer Serverpfad: `sudo bash ./install-factory-night-watch.sh /pfad/zum/factorio-projekt`.
@@ -143,11 +145,11 @@ Rules cover structure destruction, an empty research queue (default 5 minutes), 
 time limit (default 7 simulation days; uncheck to disable). Advanced contains exceptions, three
 rotating emergency saves, optional circuit conditions and compatibility settings.
 
-For a circuit rule, select a wired electric pole with the selection tool, choose red or green,
-a signal including quality, comparison, threshold and continuous delay. Save the draft.
+For a circuit rule, select connected circuit entities with the selection tool, explicitly choose the network and input/output if needed,
+then a signal including quality, comparison, threshold and continuous delay. Save the draft.
 Rules run once per simulation second and only trigger while no players are connected. A false
-condition resets its delay. A signal absent from a connected network reads 0; a missing pole
-or selected wire network triggers an offline safety pause. Complex logic belongs in combinators.
+condition resets its delay. A signal absent from a connected network reads 0; a missing source entity
+or selected connector network triggers an offline safety pause. Complex logic belongs in combinators.
 Multiple rules act as OR: any enabled rule may pause the entire world. Clearing a signal does not
 release an existing alarm. Admins use the GUI or `/fnw-resume` after fixing the cause.
 

@@ -9,10 +9,8 @@ data:extend({
     type="selection-tool", name="fnw-select-network", stack_size=1,
     icon="__base__/graphics/icons/shortcut-toolbar/mip/new-red-wire-x56.png", icon_size=56,
     flags={"only-in-cursor", "not-stackable", "spawnable"}, hidden=true,
-    select={border_color={1,0.7,0}, mode={"any-entity"}, cursor_box_type="entity",
-      entity_type_filters={"electric-pole"}},
-    alt_select={border_color={1,0.7,0}, mode={"any-entity"}, cursor_box_type="entity",
-      entity_type_filters={"electric-pole"}},
+    select={border_color={1,0.7,0}, mode={"any-entity"}, cursor_box_type="entity"},
+    alt_select={border_color={1,0.7,0}, mode={"any-entity"}, cursor_box_type="entity"},
     localised_name={"fnw-gui.select-network"},
     localised_description={"fnw-gui.select-help"}
   }

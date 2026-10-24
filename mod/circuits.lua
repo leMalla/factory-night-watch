@@ -18,29 +18,71 @@ function C.copy(rules)
   local out={}
   for i,r in ipairs(rules or {}) do
     local signal=r.signal and {type=r.signal.type,name=r.signal.name,quality=r.signal.quality}
-    out[i]={name=r.name, entity=r.entity, wire=r.wire, signal=signal,place=C.location(r),
+    out[i]={name=r.name, entity=r.entity, connector=C.connector_id(r),wire=r.wire, signal=signal,place=C.location(r),
       op=r.op, threshold=r.threshold, delay=r.delay, enabled=r.enabled}
   end
   return out
 end
-local function connector(wire)
-  return wire==2 and defines.wire_connector_id.circuit_green or defines.wire_connector_id.circuit_red
+function C.connector_id(r)
+  return r.connector or (r.wire==2 and defines.wire_connector_id.circuit_green or defines.wire_connector_id.circuit_red)
+end
+function C.port(r)
+  local id=C.connector_id(r)
+  local ids=defines.wire_connector_id
+  if id==ids.combinator_output_red or id==ids.combinator_output_green then return "port-output" end
+  local kind=r.entity and r.entity.valid and r.entity.type
+  if kind=="constant-combinator" then return "port-output" end
+  if kind=="arithmetic-combinator" or kind=="decider-combinator" or kind=="selector-combinator" then
+    return "port-input"
+  end
+  if id==ids.circuit_red or id==ids.circuit_green then return "port-connection" end
+  return "port-other"
 end
 function C.network(r, eligible)
   local e=r.entity
-  if not e or not e.valid or e.type~="electric-pole" or (eligible and not eligible(e)) then
-    return nil,"source-lost"
-  end
-  local id=connector(r.wire)
-  local network=e.get_circuit_network(id)
-  if not network then return nil,"network-lost" end
+  if not e or not e.valid or (eligible and not eligible(e)) then return nil,"source-lost" end
+  local ok,network=pcall(function() return e.get_circuit_network(C.connector_id(r)) end)
+  if not ok or not network then return nil,"network-lost" end
   return network
+end
+function C.candidates(entities, eligible, preferred)
+  local out,seen={},{}
+  if #entities>1024 then return nil,"selection-too-large" end
+  local function add(e,id,wire)
+    local r={entity=e,connector=id,wire=wire}
+    local network=C.network(r,eligible)
+    if not network then return end
+    local key=wire..":"..network.network_id
+    if seen[key] then return end
+    seen[key]=true
+    r.place=C.location(r)
+    out[#out+1]=r
+  end
+  -- Preserve a previously chosen endpoint if a feedback loop joins input/output.
+  if preferred and preferred.entity and preferred.entity.valid and (preferred.wire==1 or preferred.wire==2) then
+    add(preferred.entity,C.connector_id(preferred),preferred.wire)
+  end
+  for _,e in ipairs(entities) do
+    if e.valid and (not eligible or eligible(e)) then
+      local ok,connectors=pcall(function() return e.get_wire_connectors(false) end)
+      if ok and connectors then
+        local ids={};for id in pairs(connectors) do ids[#ids+1]=id end;table.sort(ids)
+        for _,id in ipairs(ids) do
+          local c=connectors[id]
+          if c.valid and c.wire_type==defines.wire_type.red then add(e,id,1)
+          elseif c.valid and c.wire_type==defines.wire_type.green then add(e,id,2) end
+        end
+      end
+    end
+  end
+  if #out>128 then return nil,"selection-too-large" end
+  return out
 end
 function C.read(r, eligible)
   local network,err=C.network(r,eligible)
   if not network then return nil,err end
   local e=r.entity
-  local id=connector(r.wire)
+  local id=C.connector_id(r)
   if not r.signal then return nil,"signal-required" end
   local ok,value=pcall(function() return e.get_signal(r.signal,id) end)
   if not ok then return nil,"signal-required" end
@@ -54,12 +96,14 @@ function C.validate(r, eligible)
     or (r.signal.type==nil or r.signal.type=="item") and prototypes.item[r.signal.name]
   if not proto or (r.signal.quality and not prototypes.quality[r.signal.quality]) then return "signal-required" end
   if not compare[r.op] or (r.wire~=1 and r.wire~=2) then return "invalid-rule" end
+  if r.connector~=nil and (type(r.connector)~="number" or r.connector<0 or r.connector%1~=0) then return "invalid-rule" end
   for _,key in ipairs({"threshold","delay"}) do
     local v=r[key]
     if type(v)~="number" or v~=v or v==math.huge or v==-math.huge then return "invalid-rule" end
   end
   if r.threshold%1~=0 or r.threshold< -2147483648 or r.threshold>2147483647 or r.delay<0 or r.delay>604800 then return "invalid-rule" end
   -- Disabled broken rules may be saved, allowing admins to disable a lost source.
+  if r.enabled and not r.entity then return "choose-network" end
   if r.enabled then local _,err=C.read(r,eligible); if err then return err end end
 end
 function C.poll(rules, offline, eligible, trip)

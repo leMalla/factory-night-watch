@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.5
+Date: 2026-10-24
+  Features:
+    - Select circuit networks through any connected circuit entity, including chests and inserters.
+    - Deduplicate the same network in area selections and ignore copper power connections.
+    - Require explicit selection when red/green or input/output networks are ambiguous.
+    - Store the exact connector; keep input/output values separate across save/load.
+  Compatibility:
+    - Existing pole-based rules retain their original red/green connector.
+    - Source coordinates remain available for alarm-location viewing.
+---------------------------------------------------------------------------------------------------
 Version: 0.3.4
 Date: 2026-10-24
   Bugfixes:

@@ -51,7 +51,8 @@ end
 assert(table.deepcopy==nil,"runtime tests must not inject table.deepcopy")
 helpers={table_to_json=function() return "message" end}
 prototypes={item={["iron-plate"]={}},fluid={},virtual_signal={},quality={normal={}}}
-defines.wire_connector_id={circuit_red=1,circuit_green=2}
+defines.wire_connector_id={circuit_red=1,circuit_green=2,combinator_input_red=1,combinator_input_green=2,combinator_output_red=3,combinator_output_green=4,pole_copper=16}
+defines.wire_type={red=1,green=2,copper=3}
 defines.controllers={remote=9}
 local player={valid=true,index=1,admin=false,print=function() end,
   set_shortcut_available=function() end,clear_cursor=function() return true end,cursor_stack={set_stack=function() end},
@@ -114,8 +115,15 @@ click('fnw_reload');click('fnw_add')
 change('fnw_c_name_1','Munition');change('fnw_c_signal_1',{type='item',name='iron-plate'},'signal')
 local pole={valid=true,type='electric-pole',name='small-electric-pole',position={x=1,y=2},force=game.forces.player,
  surface={valid=true,name='nauvis',planet={}},get_circuit_network=function(id) return {network_id=id==1 and 42 or 43} end,get_signal=function() return 50 end}
+pole.get_wire_connectors=function()
+  local out={}
+  for i=1,2 do if pole.get_circuit_network(i) then out[i]={valid=true,wire_type=i} end end
+  return out
+end
 click('fnw_select_1');check(not frame() and storage.fnw_ui[1].selecting==1,"selection tool preserves draft while window closed")
 handlers.on_player_selected_area{player_index=1,item='fnw-select-network',entities={pole}}
+check(storage.fnw_ui[1].circuits[1].entity==nil,'two networks require an explicit choice without selecting a default')
+change('fnw_c_connection_1',2,'select')
 check(frame() and storage.fnw_ui[1].circuits[1].entity==pole,"pole selection returns to draft")
 change('fnw_c_op_1',1,'select');change('fnw_c_threshold_1','100');change('fnw_c_delay_1','60');click('fnw_apply')
 check(#storage.guard.circuits==1 and storage.guard.circuits[1].threshold==100,"circuit rule saved after validation")
@@ -136,6 +144,7 @@ click('fnw_select_1');player.cursor_stack.valid_for_read=false
 handlers.on_player_cursor_stack_changed{player_index=1}
 check(frame() and storage.fnw_ui[1].circuits[1].name=='Munitionsvorrat',"cancelling selection restores draft")
 click('fnw_select_1');handlers.on_player_selected_area{player_index=1,item='fnw-select-network',entities={pole}}
+change('fnw_c_connection_1',2,'select')
 click('fnw_apply');check(#storage.guard.circuits==1,"second circuit created")
 change('fnw_c_threshold_1','-5');storage.guard.circuit_revision=storage.guard.circuit_revision+1;click('fnw_apply')
 check(find(frame(),'fnw_feedback').caption[1]=='fnw-gui.conflict',"stale circuit draft cannot overwrite another admin")
@@ -219,7 +228,7 @@ change('fnw_c_name_1','Uncommitted circuit draft')
 check(storage.guard.circuits[1].name=='Saved circuit regression','unsaved circuit edits do not mutate installed rules')
 local source_caption=find(frame(),'fnw_c_network_1').caption
 check(source_caption[1]=='fnw-gui.network-label' and source_caption[2]==42,'source display uses actual red circuit network ID instead of coordinates')
-change('fnw_c_wire_1',2,'select')
+change('fnw_c_connection_1',3,'select')
 check(find(frame(),'fnw_c_network_1').caption[2]==43,'switching wire colour immediately shows the other network ID')
 pole.get_circuit_network=function() return {network_id=99} end;handlers.on_player_promoted()
 check(find(frame(),'fnw_c_network_1').caption[2]==99,'network ID display follows current topology instead of a cached ID')
@@ -292,4 +301,60 @@ handlers.on_gui_text_changed{player_index=2,element=other_name}
 change('fnw_v_ignore-walls',not backing['fnw-ignore-walls'].value,'check');click('fnw_apply')
 check(storage.fnw_ui[2].dirty and find(other.gui.screen.fnw_window,'fnw_c_name_'..added).text=='Other admin draft','apply refresh preserves another admins dirty GUI while paused')
 game.get_player=previous_get_player;game.players={player};game.connected_players={player}
+local function device(kind,networks)
+  local e={valid=true,type=kind,name=kind,position={x=25,y=26},force=game.forces.player,surface={valid=true,name='nauvis',planet={}}}
+  e.get_circuit_network=function(id) local n=networks[id];return n and {network_id=n.id} end
+  e.get_wire_connectors=function()
+    local out={};for id,n in pairs(networks) do out[id]={valid=true,wire_type=n.wire or (id%2==1 and defines.wire_type.red or defines.wire_type.green)} end;return out
+  end
+  e.get_signal=function(_,id) assert(networks[id],'wrong connector');return networks[id].value or 50 end
+  return e
+end
+local chest=device('container',{[1]={id=501}})
+local inserter=device('inserter',{[1]={id=501}})
+local comb_networks={[1]={id=501,value=50},[2]={id=502,value=60},[3]={id=503,value=200},[4]={id=504,value=300}}
+local comb=device('arithmetic-combinator',comb_networks)
+check(#Circuits.candidates({chest},nil)==1,'container with one circuit network is selectable')
+check(#Circuits.candidates({chest,inserter},nil)==1,'area selection deduplicates the same network across box and inserter')
+local four=Circuits.candidates({chest,inserter,comb},nil)
+check(#four==4,'combinator input/output red/green remain four explicit network choices')
+check(Circuits.port(four[3])=='port-output' and Circuits.port(four[1])~='port-output','connector labels distinguish combinator outputs')
+local power=device('electric-pole',{[16]={id=777,wire=defines.wire_type.copper}})
+check(#Circuits.candidates({power},nil)==0,'copper power network is never offered as a circuit network')
+local empty=device('container',{})
+check(#Circuits.candidates({empty},nil)==0,'unwired objects produce no circuit choices')
+local forbidden=Circuits.candidates({chest},function() return false end)
+check(#forbidden==0,'unmonitored entities are excluded from network selection')
+local huge={};for i=1,1025 do huge[i]=chest end
+local too_many,selection_error=Circuits.candidates(huge,nil)
+check(too_many==nil and selection_error=='selection-too-large','large selections are bounded with a clear error')
+click('fnw_add');local index=#storage.fnw_ui[1].circuits
+change('fnw_c_name_'..index,'Combinator output')
+change('fnw_c_signal_'..index,{type='item',name='iron-plate'},'signal')
+click('fnw_select_'..index)
+handlers.on_player_selected_area{player_index=1,item='fnw-select-network',entities={chest,inserter,comb}}
+check(frame() and storage.fnw_ui[1].circuits[index].entity==nil,'ambiguous range does not silently select any endpoint')
+local before_count=#storage.guard.circuits;click('fnw_apply')
+check(#storage.guard.circuits==before_count and storage.fnw_ui[1].dirty,'unresolved network choice cannot be saved as an active rule')
+local option_index
+for i,r in ipairs(storage.fnw_ui[1].circuits[index].choices) do if r.entity==comb and r.connector==3 then option_index=i+1 end end
+change('fnw_c_connection_'..index,option_index,'select');click('fnw_apply')
+check(storage.guard.circuits[index].connector==3 and storage.guard.circuits[index].entity==comb,'explicit output choice stores the exact entity and connector')
+click('fnw_close');registered['fnw-gui']{player_index=1}
+check(storage.fnw_ui[1].circuits[index].connector==3,'saved output connector survives GUI close/reopen and copying')
+comb_networks[3]=nil
+local missing,problem=Circuits.read(storage.guard.circuits[index])
+check(missing==nil and problem=='network-lost','lost output never silently switches to a still-connected input')
+local legacy={entity=chest,wire=1,signal={type='item',name='iron-plate'}}
+check(Circuits.read(legacy)==50 and Circuits.copy({legacy})[1].connector==1,'legacy pole-style red/green rules migrate to their original connector')
+local feedback_loop=device('decider-combinator',{[1]={id=900},[3]={id=900}})
+check(#Circuits.candidates({feedback_loop},nil)==1,'feedback loop shared input/output is one physical network')
+local retained=Circuits.candidates({feedback_loop},nil,{entity=feedback_loop,connector=3,wire=1})
+check(#retained==1 and retained[1].connector==3,'deduplication retains an already selected output endpoint')
+local r=storage.fnw_ui[1].circuits[index]
+local input_choice,output_choice
+for i,option in ipairs(r.choices) do if option.connector==1 then input_choice=i+1 elseif option.connector==3 then output_choice=i+1 end end
+change('fnw_c_connection_'..index,input_choice,'select')
+change('fnw_c_connection_'..index,output_choice,'select')
+check(r.connector==1 and find(frame(),'fnw_c_connection_'..index).selected_index==input_choice,'choosing a disconnected option restores the previous explicit selection instead of displaying a different binding')
 print('ALL '..checks..' GUI CHECKS PASSED')

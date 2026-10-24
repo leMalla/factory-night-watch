@@ -1,6 +1,6 @@
-Factory Night Watch 0.3.4 – validation, 2026-10-24
+Factory Night Watch 0.3.5 – validation, 2026-10-24
 
-36 Space Age integration checks with actual Factorio headless 2.1.23 build 87750, Space Age,
+46 Space Age integration checks with actual Factorio headless 2.1.23 build 87750, Space Age,
 local UDP/RCON and fresh maps:
 - Protected offline production, manual pause, emergency ZIP creation.
 - Save/reload persistence of a safety latch and explicit acknowledgement.
@@ -14,6 +14,8 @@ local UDP/RCON and fresh maps:
 - All six comparisons; cleared signal cannot release a latched alarm.
 - Missing selected cable and removed pole fail-safe pauses.
 - Circuit registry and alarm persistence across save/reload.
+- Real chest/inserter sources, four-port combinator discovery and area deduplication.
+- Copper-only/unwired rejection, exact input/output signal readings and output persistence.
 - 32 active circuit rules run for five simulation minutes without a false pause.
 - Circuit copying in actual runtime without table.deepcopy, with independent signal records.
 - Source coordinates remain available after pole removal.
@@ -21,7 +23,7 @@ local UDP/RCON and fresh maps:
 The integration setup uses an extra test-only command in an isolated copy of the mod,
 solely to seed circuit rules without a client. This command is absent from the release.
 
-82 GUI/presence logic checks using Lua 5.4 mocks:
+100 GUI/presence logic checks using Lua 5.4 mocks:
 - Native shortcut, admin rights, forged event rejection, dirty-only save.
 - Explicit false checkbox values, numeric validation and decimal comma.
 - Unit conversion preserving actual duration.
@@ -44,7 +46,7 @@ solely to seed circuit rules without a client. This command is absent from the r
 - Live network ID and wire-colour display, topology changes and one-colour selection.
 - Independent stored coordinates survive invalid source references and rule copies.
 
-32 additional integration checks run with only base + Factory Night Watch,
+42 additional integration checks run with only base + Factory Night Watch,
 including real Nauvis surface association, enemy destruction and circuit signals.
 
 Review regressions additionally cover:
@@ -76,8 +78,8 @@ German/English locale key parity, archive integrity, installer shell syntax,
 embedded Python syntax and embedded ZIP checksum checked during packaging.
 
 Limits of validation:
-The maintainer confirmed 0.3.3 works in a real Windows client. The 0.3.4 review
-fixes still require one final live smoke test. Mock GUI checks do not prove
+The maintainer confirmed 0.3.4 works in a real Windows client. The 0.3.5 network-selection
+extension still requires one final live smoke test. Mock GUI checks do not prove
 pixel layout or every native event timing. Installer tests do not prove real
 Docker daemon behavior beyond the original deployment already exercised by the maintainer.
 First in-game check: open the bottom-right shortcut, review all three tabs, create a
