@@ -1,0 +1,42 @@
+Factory Night Watch 0.3.0 – validation, 2026-10-24
+
+32 integration checks with actual Factorio headless 2.1.23 build 87750, Space Age,
+local UDP/RCON and fresh maps:
+- Protected offline production, manual pause, emergency ZIP creation.
+- Save/reload persistence of a safety latch and explicit acknowledgement.
+- Configurable time limit and unlimited mode.
+- Empty research queue delay, stalled selected research, cancellation.
+- Enemy structure destruction; walls, direct removal, sandbox and hostile ownership exclusions.
+- Platform destruction without enemy attribution; low hub health alone no longer triggers.
+- Immediate empty-server pause mode and returning to protected running.
+- Real constant-combinator signals through red and green wire to an electric pole.
+- Continuous delay and reset when comparison becomes false.
+- All six comparisons; cleared signal cannot release a latched alarm.
+- Missing selected cable and removed pole fail-safe pauses.
+- Circuit registry and alarm persistence across save/reload.
+
+The integration setup uses an extra test-only command in an isolated copy of the mod,
+solely to seed circuit rules without a client. This command is absent from the release.
+
+35 GUI/presence logic checks using Lua 5.4 mocks:
+- Native shortcut, admin rights, forged event rejection, dirty-only save.
+- Explicit false checkbox values, numeric validation and decimal comma.
+- Unit conversion preserving actual duration.
+- Draft preservation, discard, dirty close confirmation, selection cancellation.
+- Pole selection, circuit validation/save/live value/removal.
+- Confirmation before test pause, emergency save, admin acknowledgement.
+- Empty-server pause/resume versus persistent safety alarm.
+- Stale admin draft rejection; lost source can be disabled and saved.
+- Online signal does not pause or collect time; leaving starts delay; joining resets it.
+- Selected tab survives closing and reopening.
+
+Prototype/data stage successfully loaded by actual Factorio 2.1.23.
+GUI element specifications cross-checked against the 2.1.23 runtime API.
+German/English locale key parity, archive integrity, installer shell syntax,
+embedded Python syntax and embedded ZIP checksum checked during packaging.
+
+Limits of validation:
+No native Windows client was available to render the final GUI or perform selection
+with an actual mouse. Mock GUI checks do not prove pixel layout or native event timing.
+First in-game check: open the bottom-right shortcut, review all three tabs, create a
+circuit rule, verify its live value, save it, then test and acknowledge a safety pause.

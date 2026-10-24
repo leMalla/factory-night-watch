@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+build/
+dist/
+.env
+.env.*
+*.zip
+*.log
+mod-settings.dat
+server-settings.json
+rconpw
+.DS_Store

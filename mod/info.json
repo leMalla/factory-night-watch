@@ -1,0 +1,13 @@
+{
+  "name": "factory-night-watch",
+  "version": "0.3.0",
+  "title": "Factory Night Watch",
+  "author": "dermalla",
+  "factorio_version": "2.1",
+  "description": "Keep multiplayer factories running offline with safety pauses, circuit conditions and a multilingual in-game control panel.",
+  "dependencies": [
+    "base >= 2.1.23",
+    "? space-age",
+    "? blueprint-sandboxes"
+  ]
+}

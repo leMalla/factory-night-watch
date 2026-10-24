@@ -1,0 +1,15 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.3.0
+Date: 2026-10-24
+  Features:
+    - Native bottom-right shortcut and three-tab control panel.
+    - Named circuit conditions with signal, quality, red/green network, comparison and continuous delay.
+    - Missing circuit sources trigger a latched safety pause while offline.
+    - Complete German and English runtime messages and controls.
+  Changes:
+    - Removed the separate platform hub health rule.
+    - Disabled protected running now means immediate empty-server pause, with auto-resume on join.
+    - Safety alarms remain latched in both operating modes.
+  Gui:
+    - Explicit label widths, save/discard drafts, dirty-close and test confirmation.
+    - Retain tab/window position; read-only controls for non-admins.

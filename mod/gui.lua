@@ -1,0 +1,312 @@
+local G={}
+local C=require("circuits")
+local callbacks={}
+local ROOT="fnw_window"
+local keys={"enabled","max-offline-hours","research-pause","research-idle-minutes","destruction-pause","ignore-walls","ignore-robots","emergency-save","forces","excluded-surfaces"}
+local function tr(key,...) return {"fnw-gui."..key,...} end
+local function opt(key) return settings.global["fnw-"..key].value end
+local function state() storage.fnw_ui=storage.fnw_ui or {};return storage.fnw_ui end
+local function ui(p)
+  local all=state(); all[p.index]=all[p.index] or {tab=1}; return all[p.index]
+end
+local function window(p) return p.gui.screen[ROOT] end
+local function find(e,name)
+  if not e then return end
+  if e.name==name then return e end
+  for _,child in pairs(e.children) do local r=find(child,name);if r then return r end end
+end
+local function duration(ticks)
+  local sec=math.max(0,math.floor(ticks/60))
+  return string.format("%dd %02dh %02dm",math.floor(sec/86400),math.floor(sec/3600)%24,math.floor(sec/60)%60)
+end
+local function load(p)
+  local d=ui(p);d.values={}
+  for _,k in ipairs(keys) do d.values[k]=opt(k) end
+  local hours=opt("max-offline-hours")
+  d.limit=hours>0;d.unit=hours%24==0 and 2 or 1;d.time=tostring(hours>0 and hours/(d.unit==2 and 24 or 1) or 7)
+  d.circuits=C.copy((storage.guard or {}).circuits)
+  d.revision=(storage.guard or {}).circuit_revision or 0
+  d.dirty=false;d.confirm=nil
+end
+local function destroy(p)
+  local f=window(p)
+  if f then
+    ui(p).position=f.location
+    local tabs=find(f,"fnw_tabs");if tabs then ui(p).tab=tabs.selected_tab_index end
+    if p.opened==f then p.opened=nil end
+    f.destroy()
+  end
+end
+local function label(parent,text)
+  local e=parent.add{type="label",caption=text}
+  e.style.single_line=false;e.style.width=520
+  return e
+end
+local function button(parent,name,key,edit)
+  return parent.add{type="button",name=name,caption=tr(key),tags={fnw_edit=edit or false}}
+end
+local function row(parent,key,element)
+  local f=parent.add{type="flow",direction="horizontal"}
+  local l=f.add{type="label",caption=tr(key)};l.style.width=280;l.style.single_line=false
+  local e=f.add(element);e.tags={fnw_edit=true};if element.type=="textfield" then e.style.width=190 end
+  return e
+end
+local function checkbox(parent,p,key)
+  return parent.add{type="checkbox",name="fnw_v_"..key,caption={"mod-setting-name.fnw-"..key},state=ui(p).values[key],tags={fnw_edit=true},tooltip={"mod-setting-description.fnw-"..key}}
+end
+local function circuit_editor(parent,p,i,r)
+  local box=parent.add{type="frame",direction="vertical",style="inside_shallow_frame"}
+  local head=box.add{type="flow",direction="horizontal"}
+  head.add{type="checkbox",name="fnw_c_enabled_"..i,caption=tr("rule",i),state=r.enabled,tags={fnw_edit=true}}
+  button(head,"fnw_remove_"..i,"remove",true)
+  row(box,"name",{type="textfield",name="fnw_c_name_"..i,text=r.name})
+  local source=box.add{type="flow",direction="horizontal"}
+  button(source,"fnw_select_"..i,"select-network",true)
+  local loc=r.entity and r.entity.valid and (r.entity.surface.name..string.format(" · %.0f, %.0f",r.entity.position.x,r.entity.position.y)) or tr("no-network")
+  local l=source.add{type="label",caption=loc};l.style.width=330;l.style.single_line=false
+  row(box,"wire",{type="drop-down",name="fnw_c_wire_"..i,items={tr("red"),tr("green")},selected_index=r.wire})
+  row(box,"signal",{type="choose-elem-button",name="fnw_c_signal_"..i,elem_type="signal",signal=r.signal})
+  row(box,"operator",{type="drop-down",name="fnw_c_op_"..i,items=C.operators,selected_index=(function() for n,v in ipairs(C.operators) do if v==r.op then return n end end return 6 end)()})
+  row(box,"threshold",{type="textfield",name="fnw_c_threshold_"..i,text=tostring(r.threshold)})
+  row(box,"delay",{type="textfield",name="fnw_c_delay_"..i,text=tostring(r.delay)})
+  local status=label(box,"");status.name="fnw_c_status_"..i
+end
+function G.configure(c) callbacks=c end
+function G.ensure(p)
+  if not p or not p.valid then return end
+  local legacy=p.gui.top.fnw_toggle;if legacy then legacy.destroy() end
+  local old=window(p)
+  if old and not find(old,"fnw_tabs") then destroy(p);state()[p.index]=nil end
+  p.set_shortcut_available("fnw-open",true)
+end
+function G.refresh(p)
+  local f=window(p);if not f then return end
+  local s=storage.guard or {};local d=ui(p)
+  local status=s.alarm and "alarm" or game.tick_paused and "paused" or #game.connected_players>0 and "online" or "offline"
+  find(f,"fnw_status").caption=tr("status",tr("status-"..status))
+  find(f,"fnw_elapsed").caption=tr(s.offline_since and "elapsed" or "last-elapsed",duration(s.offline_since and game.tick-s.offline_since or s.last_offline_ticks or 0))
+  local limit=opt("max-offline-hours")
+  find(f,"fnw_remaining").caption=limit==0 and tr("unlimited") or tr("remaining",duration(limit*216000-(s.offline_since and game.tick-s.offline_since or 0)))
+  local last=s.alarm or s.last_alarm
+  local alarm=last and last.reason or tr("no-alarm")
+  if last and last.place then local l=last.place;alarm={"",alarm,"\n",l.surface,string.format(" · %.1f, %.1f",l.x,l.y)} end
+  find(f,"fnw_alarm").caption=alarm
+  local resume=find(f,"fnw_resume");resume.visible=s.alarm~=nil;resume.enabled=p.admin
+  find(f,"fnw_permissions").caption=tr(p.admin and "admin" or "read-only")
+  find(f,"fnw_apply").enabled=p.admin and d.dirty
+  find(f,"fnw_reload").enabled=d.dirty
+  find(f,"fnw_changes").caption=tr(d.dirty and "unsaved" or "clean")
+  local function permissions(e)
+    if e.tags.fnw_edit then e.enabled=p.admin end
+    for _,c in pairs(e.children) do permissions(c) end
+  end
+  permissions(f)
+  for i,r in ipairs(d.circuits) do
+    local value,problem=C.read(r,callbacks.eligible)
+    local live=(s.circuits or {})[i]
+    local text
+    if not r.enabled then text=tr("circuit-disabled")
+    elseif not r.signal then text=tr("signal-required")
+    elseif problem then text=tr(problem)
+    elseif not tonumber(r.threshold) then text=tr("invalid-rule")
+    else
+      local matching=C.matches(value,r.op,tonumber(r.threshold))
+      text=tr("circuit-status",value,tr(matching and "condition-true" or "condition-false"))
+      if not d.dirty and live and live.since and not s.alarm then
+        text={"",text," · ",tr("delay-progress",math.floor((game.tick-live.since)/60),r.delay)}
+      end
+    end
+    find(f,"fnw_c_status_"..i).caption=text
+  end
+end
+function G.refresh_all()
+  for _,p in pairs(game.players or {}) do G.ensure(p);G.refresh(p) end
+end
+local function build(p)
+  local old=window(p)
+  if old then
+    local pane=find(old,"fnw_tabs");ui(p).tab=pane.selected_tab_index
+    destroy(p)
+  end
+  local d=ui(p)
+  local f=p.gui.screen.add{type="frame",name=ROOT,direction="vertical"};f.style.width=620
+  local title=f.add{type="flow",direction="horizontal"}
+  title.add{type="label",caption="Factory Night Watch",style="frame_title"}
+  local drag=title.add{type="empty-widget",style="draggable_space_header"};drag.style.horizontally_stretchable=true;drag.style.height=24;drag.drag_target=f
+  title.add{type="sprite-button",name="fnw_close",sprite="utility/close",style="frame_action_button",tooltip=tr("close")}
+  local tabs=f.add{type="tabbed-pane",name="fnw_tabs"}
+  local pages={}
+  for i,k in ipairs({"overview","rules","advanced"}) do
+    local tab=tabs.add{type="tab",caption=tr(k)}
+    local pane=tabs.add{type="scroll-pane"}
+    pane.style.width=580;pane.style.height=460
+    tabs.add_tab(tab,pane);pages[i]=pane.add{type="flow",direction="vertical"}
+  end
+  tabs.selected_tab_index=d.tab or 1
+  local overview=pages[1]
+  label(overview,"").name="fnw_status";label(overview,"").name="fnw_elapsed";label(overview,"").name="fnw_remaining"
+  row(overview,"mode",{type="drop-down",name="fnw_mode",items={tr("mode-protected"),tr("mode-pause")},selected_index=d.values.enabled and 1 or 2})
+  label(overview,tr("mode-help"));label(overview,tr("last-alarm"))
+  label(overview,"").name="fnw_alarm";button(overview,"fnw_resume","resume",false)
+  local rules=pages[2]
+  checkbox(rules,p,"destruction-pause");label(rules,tr("destruction-help"))
+  checkbox(rules,p,"research-pause")
+  row(rules,"research-delay",{type="textfield",name="fnw_v_research-idle-minutes",text=tostring(d.values["research-idle-minutes"])})
+  label(rules,tr("research-help"))
+  rules.add{type="checkbox",name="fnw_limit",caption=tr("time-limit"),state=d.limit,tags={fnw_edit=true}}
+  local time=rules.add{type="flow",direction="horizontal"}
+  local input=time.add{type="textfield",name="fnw_time",text=d.time,tags={fnw_edit=true}};input.style.width=100
+  time.add{type="drop-down",name="fnw_unit",items={tr("hours"),tr("days")},selected_index=d.unit,tags={fnw_edit=true}}
+  label(rules,tr("simulation-help"))
+  local adv=pages[3]
+  label(adv,tr("exceptions"));checkbox(adv,p,"ignore-walls");checkbox(adv,p,"ignore-robots")
+  checkbox(adv,p,"emergency-save")
+  label(adv,tr("circuits"));label(adv,tr("circuits-help"))
+  if #d.circuits==0 then label(adv,tr("no-circuits")) end
+  for i,r in ipairs(d.circuits) do circuit_editor(adv,p,i,r) end
+  button(adv,"fnw_add","add-circuit",true)
+  button(adv,"fnw_compatibility","compatibility",false)
+  if d.compatibility then
+    row(adv,"forces",{type="textfield",name="fnw_v_forces",text=d.values.forces})
+    row(adv,"excluded-surfaces",{type="textfield",name="fnw_v_excluded-surfaces",text=d.values["excluded-surfaces"]})
+    label(adv,tr("compatibility-help"))
+  end
+  button(adv,"fnw_test","test",true)
+  label(f,"").name="fnw_permissions"
+  local feedback=label(f,d.feedback or "");feedback.name="fnw_feedback"
+  if d.confirm then
+    label(f,tr(d.confirm=="test" and "test-warning" or "discard-warning"))
+    local confirm=f.add{type="flow",direction="horizontal"}
+    button(confirm,"fnw_confirm","confirm",false);button(confirm,"fnw_cancel","cancel",false)
+  end
+  local footer=f.add{type="flow",direction="horizontal"}
+  button(footer,"fnw_apply","apply",false);button(footer,"fnw_reload","discard",false)
+  footer.add{type="label",name="fnw_changes",caption=""}
+  if d.position then f.location=d.position else f.force_auto_center() end
+  p.opened=f
+  G.refresh(p)
+end
+function G.open(p)
+  G.ensure(p)
+  if not ui(p).values or (not window(p) and not ui(p).selecting and not ui(p).dirty) then load(p) end
+  build(p)
+end
+local function owned(e) return e and e.valid and e.get_mod()=="factory-night-watch" end
+local function feedback(p,key,...)
+  ui(p).feedback=tr(key,...);local f=window(p);if f then find(f,"fnw_feedback").caption=ui(p).feedback end
+end
+local function numeric(raw) return tonumber((tostring(raw):gsub(",","."))) end
+local function apply(p)
+  local d=ui(p);local values=table.deepcopy(d.values)
+  local minutes=numeric(values["research-idle-minutes"])
+  local t=numeric(d.time)
+  if not minutes or minutes~=minutes or minutes<0.1 or minutes>1440 or (d.limit and (not t or t~=t or t<=0 or t*(d.unit==2 and 24 or 1)>8760)) then feedback(p,"invalid-number");return end
+  values["research-idle-minutes"]=minutes
+  values["max-offline-hours"]=d.limit and t*(d.unit==2 and 24 or 1) or 0
+  local count=0
+  for name in tostring(values.forces):gmatch("[^,]+") do
+    name=name:match("^%s*(.-)%s*$")
+    if not game.forces[name] then feedback(p,"unknown-force",name);return end
+    count=count+1
+  end
+  if count==0 then feedback(p,"empty-force");return end
+  local rules=C.copy(d.circuits)
+  for i,r in ipairs(rules) do
+    r.threshold=numeric(r.threshold);r.delay=numeric(r.delay)
+    local err=C.validate(r,callbacks.eligible)
+    if err then feedback(p,"rule-error",i,tr(err));return end
+  end
+  local s=storage.guard
+  if d.revision~=(s.circuit_revision or 0) then feedback(p,"conflict");return end
+  -- All fields and rules have been validated before modifying server state.
+  for _,k in ipairs(keys) do if values[k]~=opt(k) then settings.global["fnw-"..k]={value=values[k]} end end
+  s.circuits=rules;s.circuit_revision=(s.circuit_revision or 0)+1
+  load(p);d.feedback=tr("saved");build(p)
+end
+local function request_close(p)
+  if ui(p).dirty then ui(p).confirm="close";build(p) else destroy(p) end
+end
+local function changed(event)
+  if not owned(event.element) then return end
+  local p=game.get_player(event.player_index)
+  if not p or not p.admin or not window(p) then return end
+  local d=ui(p);local e=event.element;local name=e.name
+  local key=name:match("^fnw_v_(.+)$")
+  if key then if e.type=="checkbox" then d.values[key]=e.state else d.values[key]=e.text end
+  elseif name=="fnw_mode" then d.values.enabled=e.selected_index==1
+  elseif name=="fnw_limit" then d.limit=e.state
+  elseif name=="fnw_time" then d.time=e.text
+  elseif name=="fnw_unit" then
+    local t=numeric(d.time)
+    if t then d.time=tostring(t*(d.unit==2 and 24 or 1)/(e.selected_index==2 and 24 or 1));find(window(p),"fnw_time").text=d.time end
+    d.unit=e.selected_index
+  else
+    local field,index=name:match("^fnw_c_([a-z]+)_(%d+)$");index=tonumber(index)
+    if not field or not d.circuits[index] then return end
+    local r=d.circuits[index]
+    if field=="enabled" then r.enabled=e.state
+    elseif field=="wire" then r.wire=e.selected_index
+    elseif field=="signal" then r.signal=e.elem_value
+    elseif field=="op" then r.op=C.operators[e.selected_index]
+    else r[field]=e.text end
+  end
+  d.dirty=true;d.feedback=nil;G.refresh(p)
+end
+for _,event in ipairs({defines.events.on_gui_text_changed,defines.events.on_gui_checked_state_changed,defines.events.on_gui_selection_state_changed,defines.events.on_gui_elem_changed}) do script.on_event(event,changed) end
+script.on_event(defines.events.on_lua_shortcut,function(e)
+  if e.prototype_name~="fnw-open" then return end
+  local p=game.get_player(e.player_index)
+  if window(p) then request_close(p) else G.open(p) end
+end)
+script.on_event(defines.events.on_gui_click,function(event)
+  if not owned(event.element) then return end
+  local p=game.get_player(event.player_index);if not p or not window(p) then return end
+  local d=ui(p);local name=event.element.name
+  if name=="fnw_close" then request_close(p);return
+  elseif name=="fnw_cancel" then d.confirm=nil;build(p);return
+  elseif name=="fnw_reload" then load(p);build(p);return
+  elseif name=="fnw_compatibility" then d.compatibility=not d.compatibility;build(p);return
+  elseif name=="fnw_confirm" then
+    local action=d.confirm;d.confirm=nil
+    if action=="close" then load(p);destroy(p);return end
+    if action=="test" and p.admin then callbacks.test() end
+    build(p);return
+  end
+  if not p.admin then return end
+  if name=="fnw_apply" then apply(p)
+  elseif name=="fnw_resume" then callbacks.resume();G.refresh_all()
+  elseif name=="fnw_test" then d.confirm="test";build(p)
+  elseif name=="fnw_add" then
+    if #d.circuits>=32 then feedback(p,"rule-limit");return end
+    d.circuits[#d.circuits+1]={name="",wire=1,op=">",threshold=0,delay=30,enabled=true};d.dirty=true;build(p)
+  else
+    local index=tonumber(name:match("^fnw_remove_(%d+)$"))
+    if index then table.remove(d.circuits,index);d.dirty=true;build(p);return end
+    index=tonumber(name:match("^fnw_select_(%d+)$"))
+    if index then
+      if not p.clear_cursor() then feedback(p,"cursor-busy");return end
+      d.selecting=index;destroy(p);p.cursor_stack.set_stack{name="fnw-select-network",count=1}
+      p.print(tr("select-help"))
+    end
+  end
+end)
+script.on_event(defines.events.on_gui_closed,function(e)
+  if owned(e.element) and e.element.name==ROOT then request_close(game.get_player(e.player_index)) end
+end)
+local function selected(e)
+  if e.item~="fnw-select-network" then return end
+  local p=game.get_player(e.player_index);local d=ui(p)
+  if not p.admin or not d.selecting or not d.circuits[d.selecting] then return end
+  if #e.entities~=1 or not callbacks.eligible(e.entities[1]) then p.print(tr("select-one"));return end
+  local pole=e.entities[1]
+  if not pole.get_circuit_network(defines.wire_connector_id.circuit_red) and not pole.get_circuit_network(defines.wire_connector_id.circuit_green) then p.print(tr("no-cable"));return end
+  d.circuits[d.selecting].entity=pole;d.dirty=true;d.selecting=nil
+  p.clear_cursor();build(p)
+end
+script.on_event(defines.events.on_player_selected_area,selected)
+script.on_event(defines.events.on_player_alt_selected_area,selected)
+script.on_event(defines.events.on_player_cursor_stack_changed,function(e)
+  local p=game.get_player(e.player_index);local d=(storage.fnw_ui or {})[p.index]
+  if d and d.selecting and (not p.cursor_stack or not p.cursor_stack.valid_for_read or p.cursor_stack.name~="fnw-select-network") then d.selecting=nil;G.open(p) end
+end)
+return G

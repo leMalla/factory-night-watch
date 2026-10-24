@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible problem with Factory Night Watch
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: Factorio and mod versions
+      placeholder: Factorio 2.1.23, Factory Night Watch 0.3.0
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Describe the mode, rule, online/offline state, and how to reproduce on a fresh test map.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant details
+      description: Other mods, screenshots, and sanitized error excerpts. Remove account tokens, passwords, IP addresses, and other private server details.
