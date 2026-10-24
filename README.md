@@ -1,9 +1,11 @@
 # Factory Night Watch
 
+<img src="mod/thumbnail.png" alt="Factory Night Watch" width="320">
+
 Keep your cooperative Factorio factory running while everyone is offline, with
 configurable safety pauses when something needs attention.
 
-**Release candidate 0.3.6 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
+**Release candidate 0.3.7 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
 
 [Deutsche Anleitung](docs/README.de.md) · [Validation](docs/TESTS.txt) ·
 [Changelog](mod/changelog.txt)
@@ -50,7 +52,7 @@ Build the distribution using Python 3 (standard library only):
 python3 tools/build.py
 ```
 
-Copy `dist/factory-night-watch_0.3.6.zip` into each client's Factorio `mods`
+Copy `dist/factory-night-watch_0.3.7.zip` into each client's Factorio `mods`
 directory without extracting it. Remove older ZIP versions and restart Factorio.
 All clients and the server need the same version. This development build is not
 yet published on the Factorio Mod Portal.

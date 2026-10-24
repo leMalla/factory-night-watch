@@ -1,4 +1,6 @@
-# Factory Night Watch 0.3.6
+# Factory Night Watch 0.3.7
+
+<img src="../mod/thumbnail.png" alt="Factory Night Watch" width="320">
 
 Offline production for cooperative Factorio 2.1.23 multiplayer servers, including Space Age.
 German and English settings, GUI, commands and safety messages. Author: dermalla.
@@ -110,7 +112,7 @@ Der Installer enthält die ZIP bereits; Download-Zugangsdaten sind nicht nötig.
    mit neuestem Spielstand/Mods/Konfiguration an, ersetzt alte Mod-ZIPs, setzt `auto_pause=false`
    und prüft den Serverstart. Andere Container werden nicht bearbeitet.
 4. Auf ALLEN Clients die alte ZIP aus dem Mods-Ordner entfernen und die unveränderte neue
-   `factory-night-watch_0.3.6.zip` nach `%APPDATA%\Factorio\mods` kopieren. Nicht entpacken.
+   `factory-night-watch_0.3.7.zip` nach `%APPDATA%\Factorio\mods` kopieren. Nicht entpacken.
    Factorio neu starten. Alle Spieler und der Server brauchen dieselbe Version.
 
 Alternativer Serverpfad: `sudo bash ./install-factory-night-watch.sh /pfad/zum/factorio-projekt`.
