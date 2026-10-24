@@ -37,7 +37,7 @@ local function load(p)
   d.limit=hours>0;d.unit=hours%24==0 and 2 or 1;d.time=tostring(hours>0 and hours/(d.unit==2 and 24 or 1) or 7)
   d.circuits=C.copy((storage.guard or {}).circuits)
   d.revision=(storage.guard or {}).circuit_revision or 0
-  d.dirty=false;d.confirm=nil
+  d.dirty=false;d.confirm=nil;d.feedback=nil
 end
 local function destroy(p)
   local f=window(p)
@@ -152,6 +152,8 @@ function G.refresh(p)
   find(f,"fnw_permissions").caption=tr(p.admin and "admin" or "read-only")
   find(f,"fnw_apply").enabled=p.admin and d.dirty
   find(f,"fnw_reload").enabled=d.dirty
+  -- A previous save confirmation must never describe a newly edited draft.
+  if d.dirty and d.feedback and d.feedback[1]=="fnw-gui.saved" then d.feedback=nil end
   find(f,"fnw_feedback").caption=d.feedback or ""
   find(f,"fnw_changes").caption=tr(d.dirty and "unsaved" or "clean")
   find(f,"fnw_confirm_panel").visible=d.confirm~=nil
