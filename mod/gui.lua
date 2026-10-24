@@ -76,7 +76,7 @@ function G.ensure(p)
   if not p or not p.valid then return end
   local legacy=p.gui.top.fnw_toggle;if legacy then legacy.destroy() end
   local old=window(p)
-  if old and not find(old,"fnw_tabs") then destroy(p);state()[p.index]=nil end
+  if old and (not find(old,"fnw_tabs") or not find(old,"fnw_jump")) then destroy(p);state()[p.index]=nil end
   p.set_shortcut_available("fnw-open",true)
 end
 function G.refresh(p)
@@ -91,6 +91,11 @@ function G.refresh(p)
   local alarm=last and last.reason or tr("no-alarm")
   if last and last.place then local l=last.place;alarm={"",alarm,"\n",l.surface,string.format(" · %.1f, %.1f",l.x,l.y)} end
   find(f,"fnw_alarm").caption=alarm
+  local jump=find(f,"fnw_jump")
+  jump.visible=last~=nil and last.place~=nil
+  local place=last and last.place
+  local surface=place and game.surfaces[place.surface]
+  jump.enabled=surface~=nil and surface.valid
   local resume=find(f,"fnw_resume");resume.visible=s.alarm~=nil;resume.enabled=p.admin
   find(f,"fnw_permissions").caption=tr(p.admin and "admin" or "read-only")
   find(f,"fnw_apply").enabled=p.admin and d.dirty
@@ -147,7 +152,7 @@ local function build(p)
   label(overview,"").name="fnw_status";label(overview,"").name="fnw_elapsed";label(overview,"").name="fnw_remaining"
   row(overview,"mode",{type="drop-down",name="fnw_mode",items={tr("mode-protected"),tr("mode-pause")},selected_index=d.values.enabled and 1 or 2})
   label(overview,tr("mode-help"));label(overview,tr("last-alarm"))
-  label(overview,"").name="fnw_alarm";button(overview,"fnw_resume","resume",false)
+  label(overview,"").name="fnw_alarm";button(overview,"fnw_jump","jump",false);button(overview,"fnw_resume","resume",false)
   local rules=pages[2]
   checkbox(rules,p,"destruction-pause");label(rules,tr("destruction-help"))
   checkbox(rules,p,"research-pause")
@@ -190,6 +195,20 @@ function G.open(p)
   G.ensure(p)
   if not ui(p).values or (not window(p) and not ui(p).selecting and not ui(p).dirty) then load(p) end
   build(p)
+end
+local function jump_to_alarm(p)
+  local s=storage.guard or {}
+  local alarm=s.alarm or s.last_alarm
+  local place=alarm and alarm.place
+  local surface=place and game.surfaces[place.surface]
+  if not surface or not surface.valid then p.print(tr("jump-unavailable"));return end
+  -- Close only the window, retaining the draft. Remote view leaves the character in place.
+  destroy(p)
+  local ok=pcall(function()
+    p.set_controller{type=defines.controllers.remote,surface=surface,position={x=place.x,y=place.y}}
+    p.zoom=0.75
+  end)
+  if not ok then G.open(p);p.print(tr("jump-failed")) end
 end
 local function owned(e) return e and e.valid and e.get_mod()=="factory-night-watch" end
 local function feedback(p,key,...)
@@ -262,7 +281,8 @@ script.on_event(defines.events.on_gui_click,function(event)
   if not owned(event.element) then return end
   local p=game.get_player(event.player_index);if not p or not window(p) then return end
   local d=ui(p);local name=event.element.name
-  if name=="fnw_close" then request_close(p);return
+  if name=="fnw_jump" then jump_to_alarm(p);return
+  elseif name=="fnw_close" then request_close(p);return
   elseif name=="fnw_cancel" then d.confirm=nil;build(p);return
   elseif name=="fnw_reload" then load(p);build(p);return
   elseif name=="fnw_compatibility" then d.compatibility=not d.compatibility;build(p);return

@@ -3,7 +3,7 @@
 Keep your cooperative Factorio factory running while everyone is offline, with
 configurable safety pauses when something needs attention.
 
-**Development version 0.3.0 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
+**Development version 0.3.1 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
 
 [Deutsche Anleitung](docs/README.de.md) · [Validation](docs/TESTS.txt) ·
 [Changelog](mod/changelog.txt)
@@ -18,6 +18,7 @@ configurable safety pauses when something needs attention.
 - Bottom-right native shortcut with Overview, Rules and Advanced tabs.
 - Admin-only changes, save/discard drafts and confirmation before a test pause.
 - Persistent safety alarms, offline timers and circuit rules across save/reload.
+- Jump to the alarm location in remote view while keeping the safety pause active.
 - Three rotating emergency saves; synthetic sandbox surfaces are excluded.
 
 Protection pauses stop the whole simulation and require admin acknowledgement.
@@ -32,7 +33,7 @@ Build the distribution using Python 3 (standard library only):
 python3 tools/build.py
 ```
 
-Copy `dist/factory-night-watch_0.3.0.zip` into each client's Factorio `mods`
+Copy `dist/factory-night-watch_0.3.1.zip` into each client's Factorio `mods`
 directory without extracting it. Remove older ZIP versions and restart Factorio.
 All clients and the server need the same version. This development build is not
 yet published on the Factorio Mod Portal.
@@ -46,6 +47,17 @@ It is specific to a `factoriotools/factorio` layout with container name `factori
 running it. It briefly stops Factorio, creates a rollback snapshot and changes
 `auto_pause` to false. Other layouts can install the ZIP manually, with server
 `auto_pause=false` for protected offline running.
+
+## Updates directly from GitHub
+
+[Server setup and update commands](docs/UPDATES.md). After the one-time GitHub CLI
+login and command setup, run `~/.local/bin/factorio-mod-update` as your normal
+server user. The updater downloads a fixed commit, builds the ZIP and invokes
+the existing installer using sudo. It creates a rollback snapshot before changing
+the installation. An unchanged installed commit does not restart Factorio.
+This is on-demand deployment; it does not run unattended or update Factorio itself.
+All clients still need the same mod version. `--build-only DIRECTORY` builds
+files without touching a server.
 
 ## Circuit conditions
 
@@ -63,10 +75,11 @@ as OR: any one can pause the world. Clear the cause before acknowledging.
 
 ```sh
 python3 tests/run.py
+python3 -m unittest discover -s tests -p test_update.py
 python3 tools/build.py
 ```
 
-The first command runs 35 GUI/presence checks with Lua mocks. Install Lua 5.4 or
+The first command runs 44 GUI/presence checks with Lua mocks. Install Lua 5.4 or
 its shared library. The build validates metadata, matching locale keys, archive
 integrity, embedded installer Python and shell syntax when Bash is available.
 
@@ -84,10 +97,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
 
 ## Release readiness
 
-32 actual engine checks and 35 mock checks passed for 0.3.0. Native Windows GUI
+32 actual engine checks and 44 mock checks passed for 0.3.1. Native Windows GUI
 rendering and mouse interaction still need an in-game check. Backups remain
 necessary. There is no separate platform-hub health rule.
 
-This repository is prepared for private development. An open-source license
-must be selected before the public community release; none is granted yet.
-The mod has not been published to the Mod Portal.
+Licensed under the [MIT License](LICENSE). Copyright (c) 2026 dermalla.
+The repository is currently private and the mod has not been published to the Mod Portal.

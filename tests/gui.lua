@@ -53,6 +53,7 @@ table.deepcopy=deepcopy
 helpers={table_to_json=function() return "message" end}
 prototypes={item={["iron-plate"]={}},fluid={},virtual_signal={},quality={normal={}}}
 defines.wire_connector_id={circuit_red=1,circuit_green=2}
+defines.controllers={remote=9}
 local player={valid=true,index=1,admin=false,print=function() end,
   set_shortcut_available=function() end,clear_cursor=function() return true end,cursor_stack={set_stack=function() end},
   gui={top=element{type="flow"},screen=element{type="flow"}}}
@@ -133,4 +134,27 @@ game.connected_players={player};handlers.on_player_joined_game{player_index=1}
 check(storage.guard.circuits[1].since==nil,"player join resets circuit wait")
 click('fnw_reload');find(frame(),'fnw_tabs').selected_tab_index=3;click('fnw_close');registered['fnw-gui']{player_index=1}
 check(find(frame(),'fnw_tabs').selected_tab_index==3,'selected tab survives close/reopen')
+click('fnw_test');click('fnw_confirm')
+check(not find(frame(),'fnw_jump').visible,'location button hidden for alarms without coordinates')
+local destination={valid=true,name='vulcanus'};game.surfaces.vulcanus=destination
+storage.guard.alarm.place={surface='vulcanus',x=827.5,y=-463.5,entity='foundry'}
+handlers.on_player_promoted()
+check(find(frame(),'fnw_jump').visible and find(frame(),'fnw_jump').enabled,'stored alarm location enables view button')
+local controller
+player.set_controller=function(spec) controller=spec end
+player.admin=false
+click('fnw_jump')
+check(controller and controller.type==defines.controllers.remote and controller.surface==destination and controller.position.x==827.5,'read-only player can open exact remote alarm location')
+check(game.tick_paused and storage.guard.alarm~=nil,'viewing alarm does not acknowledge or unpause')
+registered['fnw-gui']{player_index=1};player.admin=true
+change('fnw_time','9');click('fnw_jump');registered['fnw-gui']{player_index=1}
+check(find(frame(),'fnw_time').text=='9' and storage.fnw_ui[1].dirty,'jump preserves unsaved draft when reopened')
+destination.valid=false;handlers.on_player_promoted()
+check(not find(frame(),'fnw_jump').enabled,'deleted surface disables location jump')
+click('fnw_jump');check(frame()~=nil and game.tick_paused,'unavailable location safely leaves GUI and pause intact')
+destination.valid=true;player.set_controller=function() error('remote view unavailable') end
+click('fnw_jump')
+check(frame()~=nil and storage.fnw_ui[1].dirty and game.tick_paused,'remote view failure restores draft and keeps safety pause')
+find(frame(),'fnw_jump').destroy();handlers.configuration()
+check(not frame(),'GUI from earlier tabbed version is rebuilt safely on upgrade')
 print('ALL '..checks..' GUI CHECKS PASSED')

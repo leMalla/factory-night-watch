@@ -33,6 +33,10 @@ with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = 0o644 << 16
             z.writestr(entry, file.read_bytes())
+    entry = zipfile.ZipInfo(f'{name}_{version}/LICENSE', (2026, 10, 24, 12, 0, 0))
+    entry.compress_type = zipfile.ZIP_DEFLATED
+    entry.external_attr = 0o644 << 16
+    z.writestr(entry, (ROOT / 'LICENSE').read_bytes())
 with zipfile.ZipFile(archive) as z:
     assert z.testzip() is None
     assert not any(b'fnw-it-rule' in z.read(n) for n in z.namelist()), 'Test bridge leaked into release'

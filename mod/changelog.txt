@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.1
+Date: 2026-10-24
+  Changes:
+    - Distribute the mod under the MIT license, including the notice in built ZIPs.
+    - Add an authenticated, on-demand GitHub server updater with rollback snapshots.
+    - Add a View alarm location button opening remote view without releasing the safety pause.
+    - Preserve unsaved drafts when viewing an alarm location.
+---------------------------------------------------------------------------------------------------
 Version: 0.3.0
 Date: 2026-10-24
   Features:
