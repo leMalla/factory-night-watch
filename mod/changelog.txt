@@ -1,4 +1,14 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.2
+Date: 2026-10-24
+  Bugfixes:
+    - Prevent recursive on_gui_closed handling during internal window rebuilds.
+    - Fix duplicate fnw_window crashes when adding circuit conditions or rebuilding dirty forms.
+    - Display dirty-close confirmation in place instead of opening a GUI inside on_gui_closed.
+  Testing:
+    - Model synchronous native close events and reject duplicate named GUI siblings.
+    - Cover repeated circuit edits, Escape, confirmation and focus changes to other GUIs.
+---------------------------------------------------------------------------------------------------
 Version: 0.3.1
 Date: 2026-10-24
   Changes:

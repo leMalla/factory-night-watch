@@ -27,6 +27,7 @@ local function element(spec,parent)
   setmetatable(e,{__index=function(_,key) return named[key] end})
   e.add=function(childspec)
     assert(childspec.type~="scroll-pane" or not childspec.direction,"scroll-pane direction unsupported")
+    assert(not childspec.name or not named[childspec.name],"Gui element with name "..tostring(childspec.name).." already present in the parent element.")
     local child=element(childspec,e);e.children[#e.children+1]=child
     if child.name~="" then named[child.name]=child end
     return child
@@ -57,6 +58,24 @@ defines.controllers={remote=9}
 local player={valid=true,index=1,admin=false,print=function() end,
   set_shortcut_available=function() end,clear_cursor=function() return true end,cursor_stack={set_stack=function() end},
   gui={top=element{type="flow"},screen=element{type="flow"}}}
+-- Native-style opened assignments synchronously close the previous GUI. The old
+-- element still exists during on_gui_closed; named siblings must stay unique.
+local opened_gui=nil
+local close_events=0
+setmetatable(player,{
+  __index=function(_,key) if key=="opened" then return opened_gui end end,
+  __newindex=function(t,key,value)
+    if key~="opened" then rawset(t,key,value);return end
+    local previous=opened_gui
+    opened_gui=value
+    if previous and previous~=value and previous.valid and handlers.on_gui_closed then
+      close_events=close_events+1
+      handlers.on_gui_closed{player_index=1,element=previous}
+      -- A native request to close/open another GUI wins over nested opened writes.
+      opened_gui=value
+    end
+  end
+})
 local saves=0
 game={tick=100,tick_paused=false,connected_players={player},players={player},surfaces={},
   forces={player={name="player",valid=true,index=1,research_queue={}}},
@@ -157,4 +176,31 @@ click('fnw_jump')
 check(frame()~=nil and storage.fnw_ui[1].dirty and game.tick_paused,'remote view failure restores draft and keeps safety pause')
 find(frame(),'fnw_jump').destroy();handlers.configuration()
 check(not frame(),'GUI from earlier tabbed version is rebuilt safely on upgrade')
+registered['fnw-gui']{player_index=1}
+local baseline=#storage.fnw_ui[1].circuits
+local function window_count()
+  local n=0;for _,e in ipairs(player.gui.screen.children) do if e.valid and e.name=='fnw_window' then n=n+1 end end;return n
+end
+local before_events=close_events
+click('fnw_add')
+check(#storage.fnw_ui[1].circuits==baseline+1 and window_count()==1,'add circuit survives synchronous native close event with unique root')
+check(close_events>before_events and storage.fnw_ui[1].confirm==nil,'internal teardown does not invoke user close confirmation')
+for i=1,5 do click('fnw_add');click('fnw_remove_'..#storage.fnw_ui[1].circuits) end
+check(window_count()==1 and #storage.fnw_ui[1].circuits==baseline+1,'repeated add/remove rebuilds leave exactly one window')
+local previous=frame();local expected_text=find(frame(),'fnw_time').text
+player.opened=nil
+check(frame()==previous and storage.fnw_ui[1].confirm=='close' and find(frame(),'fnw_confirm_panel').visible,'native Escape shows confirmation in existing frame without rebuilding')
+check(player.opened==nil and find(frame(),'fnw_time').text==expected_text,'native close handler does not reopen a GUI or discard draft')
+click('fnw_cancel')
+check(player.opened==frame() and storage.fnw_ui[1].dirty,'cancelling native-close confirmation restores normal opened GUI')
+player.opened=nil;click('fnw_confirm')
+check(not frame() and window_count()==0,'confirming discard after native close destroys root safely')
+registered['fnw-gui']{player_index=1};local clean_frame=frame();player.opened=nil
+check(not frame() and not clean_frame.valid,'clean native close destroys window without replacement')
+registered['fnw-gui']{player_index=1};change('fnw_time','8')
+local foreign=player.gui.screen.add{type='frame',name='foreign_gui'}
+player.opened=foreign
+check(player.opened==foreign and storage.fnw_ui[1].confirm=='close','opening another GUI keeps its focus and preserves dirty draft')
+click('fnw_confirm')
+check(not frame() and foreign.valid and player.opened==foreign,'discarding Night Watch draft leaves the other GUI intact')
 print('ALL '..checks..' GUI CHECKS PASSED')

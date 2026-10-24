@@ -1,4 +1,4 @@
-# Factory Night Watch 0.3.1
+# Factory Night Watch 0.3.2
 
 Offline production for cooperative Factorio 2.1.23 multiplayer servers, including Space Age.
 German and English settings, GUI, commands and safety messages. Author: dermalla.
@@ -32,7 +32,7 @@ bleibt über Serverneustarts erhalten. Jeder verbundene Spieler, auch AFK, zähl
 
 **Sofort pausieren** hält einen leeren Server sofort an und setzt beim Beitritt automatisch fort.
 Eine bereits ausgelöste Schutzpause bleibt in beiden Betriebsarten bis zur Admin-Bestätigung erhalten.
-Das ist seit 0.3.1 auch die Bedeutung von `/fnw-set enabled false`.
+Das ist seit 0.3.2 auch die Bedeutung von `/fnw-set enabled false`.
 
 Die Forschungsregel wartet standardmäßig 5 Spielminuten ohne gewählte oder eingereihte Forschung
 bei ALLEN überwachten Teams. Eine gewählte Forschung ohne Wissenschaftspakete zählt nicht als leer.
@@ -93,7 +93,7 @@ Der Installer enthält die ZIP bereits; Download-Zugangsdaten sind nicht nötig.
    mit neuestem Spielstand/Mods/Konfiguration an, ersetzt alte Mod-ZIPs, setzt `auto_pause=false`
    und prüft den Serverstart. Andere Container werden nicht bearbeitet.
 4. Auf ALLEN Clients die alte ZIP aus dem Mods-Ordner entfernen und die unveränderte neue
-   `factory-night-watch_0.3.1.zip` nach `%APPDATA%\Factorio\mods` kopieren. Nicht entpacken.
+   `factory-night-watch_0.3.2.zip` nach `%APPDATA%\Factorio\mods` kopieren. Nicht entpacken.
    Factorio neu starten. Alle Spieler und der Server brauchen dieselbe Version.
 
 Alternativer Serverpfad: `sudo bash ./install-factory-night-watch.sh /pfad/zum/factorio-projekt`.

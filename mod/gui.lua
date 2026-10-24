@@ -2,6 +2,8 @@ local G={}
 local C=require("circuits")
 local callbacks={}
 local ROOT="fnw_window"
+-- Suppress only synchronous close notifications caused by our own teardown.
+local internal_close={}
 local keys={"enabled","max-offline-hours","research-pause","research-idle-minutes","destruction-pause","ignore-walls","ignore-robots","emergency-save","forces","excluded-surfaces"}
 local function tr(key,...) return {"fnw-gui."..key,...} end
 local function opt(key) return settings.global["fnw-"..key].value end
@@ -33,8 +35,10 @@ local function destroy(p)
   if f then
     ui(p).position=f.location
     local tabs=find(f,"fnw_tabs");if tabs then ui(p).tab=tabs.selected_tab_index end
+    internal_close[p.index]=true
     if p.opened==f then p.opened=nil end
-    f.destroy()
+    if f.valid then f.destroy() end
+    internal_close[p.index]=nil
   end
 end
 local function label(parent,text)
@@ -76,7 +80,7 @@ function G.ensure(p)
   if not p or not p.valid then return end
   local legacy=p.gui.top.fnw_toggle;if legacy then legacy.destroy() end
   local old=window(p)
-  if old and (not find(old,"fnw_tabs") or not find(old,"fnw_jump")) then destroy(p);state()[p.index]=nil end
+  if old and (not find(old,"fnw_tabs") or not find(old,"fnw_jump") or not find(old,"fnw_confirm_panel")) then destroy(p);state()[p.index]=nil end
   p.set_shortcut_available("fnw-open",true)
 end
 function G.refresh(p)
@@ -101,6 +105,8 @@ function G.refresh(p)
   find(f,"fnw_apply").enabled=p.admin and d.dirty
   find(f,"fnw_reload").enabled=d.dirty
   find(f,"fnw_changes").caption=tr(d.dirty and "unsaved" or "clean")
+  find(f,"fnw_confirm_panel").visible=d.confirm~=nil
+  find(f,"fnw_confirmation_text").caption=tr(d.confirm=="test" and "test-warning" or "discard-warning")
   local function permissions(e)
     if e.tags.fnw_edit then e.enabled=p.admin end
     for _,c in pairs(e.children) do permissions(c) end
@@ -179,11 +185,12 @@ local function build(p)
   button(adv,"fnw_test","test",true)
   label(f,"").name="fnw_permissions"
   local feedback=label(f,d.feedback or "");feedback.name="fnw_feedback"
-  if d.confirm then
-    label(f,tr(d.confirm=="test" and "test-warning" or "discard-warning"))
-    local confirm=f.add{type="flow",direction="horizontal"}
-    button(confirm,"fnw_confirm","confirm",false);button(confirm,"fnw_cancel","cancel",false)
-  end
+  -- Keep confirmation widgets in place. Native close events must never open
+  -- another GUI: the engine may immediately close that replacement again.
+  local panel=f.add{type="flow",name="fnw_confirm_panel",direction="vertical",visible=false}
+  label(panel,"").name="fnw_confirmation_text"
+  local confirm=panel.add{type="flow",direction="horizontal"}
+  button(confirm,"fnw_confirm","confirm",false);button(confirm,"fnw_cancel","cancel",false)
   local footer=f.add{type="flow",direction="horizontal"}
   button(footer,"fnw_apply","apply",false);button(footer,"fnw_reload","discard",false)
   footer.add{type="label",name="fnw_changes",caption=""}
@@ -243,7 +250,7 @@ local function apply(p)
   load(p);d.feedback=tr("saved");build(p)
 end
 local function request_close(p)
-  if ui(p).dirty then ui(p).confirm="close";build(p) else destroy(p) end
+  if ui(p).dirty then ui(p).confirm="close";G.refresh(p) else destroy(p) end
 end
 local function changed(event)
   if not owned(event.element) then return end
@@ -311,6 +318,7 @@ script.on_event(defines.events.on_gui_click,function(event)
   end
 end)
 script.on_event(defines.events.on_gui_closed,function(e)
+  if internal_close[e.player_index] then return end
   if owned(e.element) and e.element.name==ROOT then request_close(game.get_player(e.player_index)) end
 end)
 local function selected(e)

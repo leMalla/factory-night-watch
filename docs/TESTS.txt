@@ -1,4 +1,4 @@
-Factory Night Watch 0.3.1 – validation, 2026-10-24
+Factory Night Watch 0.3.2 – validation, 2026-10-24
 
 32 integration checks with actual Factorio headless 2.1.23 build 87750, Space Age,
 local UDP/RCON and fresh maps:
@@ -18,7 +18,7 @@ local UDP/RCON and fresh maps:
 The integration setup uses an extra test-only command in an isolated copy of the mod,
 solely to seed circuit rules without a client. This command is absent from the release.
 
-44 GUI/presence logic checks using Lua 5.4 mocks:
+54 GUI/presence logic checks using Lua 5.4 mocks:
 - Native shortcut, admin rights, forged event rejection, dirty-only save.
 - Explicit false checkbox values, numeric validation and decimal comma.
 - Unit conversion preserving actual duration.
@@ -32,6 +32,10 @@ solely to seed circuit rules without a client. This command is absent from the r
 - Alarm-location button, exact cross-surface remote view and unchanged pause latch.
 - Draft preservation, missing surface and failed remote-view handling.
 - Migration from a previous tabbed GUI without the location button.
+- Synchronous native-close simulation reproduces the pre-fix duplicate-window error.
+- Named sibling uniqueness, repeated add/remove, internal close suppression.
+- Escape with dirty and clean forms; in-place confirmation, cancel and discard.
+- Opening another GUI retains that GUI focus and the Night Watch draft.
 
 8 updater tests with isolated fake GitHub/installer responses:
 - Check-only, build-only and MIT license in the ZIP.
