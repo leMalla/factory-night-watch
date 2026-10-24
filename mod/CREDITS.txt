@@ -1,0 +1,11 @@
+Factory Night Watch
+
+Maintainer: dermalla
+
+Developed with AI-assisted coding tools for code generation, documentation
+and review. The installed mod uses ordinary Factorio scripts and does not
+connect to an AI service during play.
+
+Code license: MIT. See LICENSE for the full license text.
+Built-in Factorio icon assets are referenced from the game and remain the
+property of Wube Software; they are not relicensed by this project's MIT license.

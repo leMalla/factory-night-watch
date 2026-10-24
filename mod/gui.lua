@@ -5,6 +5,7 @@ local ROOT="fnw_window"
 local LAYOUT=1
 -- Suppress only synchronous close notifications caused by our own teardown.
 local internal_close={}
+local build
 local keys={"enabled","max-offline-hours","research-pause","research-idle-minutes","destruction-pause","ignore-walls","ignore-robots","emergency-save","forces","excluded-surfaces"}
 local function tr(key,...) return {"fnw-gui."..key,...} end
 local function opt(key) return settings.global["fnw-"..key].value end
@@ -22,9 +23,16 @@ local function duration(ticks)
   local sec=math.max(0,math.floor(ticks/60))
   return string.format("%dd %02dh %02dm",math.floor(sec/86400),math.floor(sec/3600)%24,math.floor(sec/60)%60)
 end
+local function settings_changed(d)
+  if not d.baseline then return true end
+  for _,key in ipairs(keys) do
+    if d.baseline[key]~=opt(key) then return true end
+  end
+  return false
+end
 local function load(p)
-  local d=ui(p);d.values={}
-  for _,k in ipairs(keys) do d.values[k]=opt(k) end
+  local d=ui(p);d.values={};d.baseline={}
+  for _,k in ipairs(keys) do d.values[k]=opt(k);d.baseline[k]=opt(k) end
   local hours=opt("max-offline-hours")
   d.limit=hours>0;d.unit=hours%24==0 and 2 or 1;d.time=tostring(hours>0 and hours/(d.unit==2 and 24 or 1) or 7)
   d.circuits=C.copy((storage.guard or {}).circuits)
@@ -83,6 +91,10 @@ local function circuit_editor(parent,p,i,r)
   local status=label(box,"");status.name="fnw_c_status_"..i
 end
 function G.configure(c) callbacks=c end
+function G.remove_player(index)
+  if storage.fnw_ui then storage.fnw_ui[index]=nil end
+  internal_close[index]=nil
+end
 function G.ensure(p)
   if not p or not p.valid then return end
   local legacy=p.gui.top.fnw_toggle;if legacy then legacy.destroy() end
@@ -93,6 +105,11 @@ end
 function G.refresh(p)
   local f=window(p);if not f then return end
   local s=storage.guard or {};local d=ui(p)
+  -- Clean forms track server changes. Dirty drafts retain their inputs and are
+  -- checked against the captured baseline before they may change server state.
+  if not d.dirty and (settings_changed(d) or d.revision~=(s.circuit_revision or 0)) then
+    load(p);build(p);return
+  end
   local status=s.alarm and "alarm" or game.tick_paused and "paused" or #game.connected_players>0 and "online" or "offline"
   find(f,"fnw_status").caption=tr("status",tr("status-"..status))
   find(f,"fnw_elapsed").caption=tr(s.offline_since and "elapsed" or "last-elapsed",duration(s.offline_since and game.tick-s.offline_since or s.last_offline_ticks or 0))
@@ -141,7 +158,7 @@ end
 function G.refresh_all()
   for _,p in pairs(game.players or {}) do G.ensure(p);G.refresh(p) end
 end
-local function build(p)
+build=function(p)
   local old=window(p)
   if old then
     local pane=find(old,"fnw_tabs");ui(p).tab=pane.selected_tab_index
@@ -232,6 +249,7 @@ end
 local function numeric(raw) return tonumber((tostring(raw):gsub(",","."))) end
 local function apply(p)
   local d=ui(p);local values={}
+  if settings_changed(d) then feedback(p,"settings-conflict");return end
   -- Runtime settings are flat booleans, numbers and strings.
   for key,value in pairs(d.values) do values[key]=value end
   local minutes=numeric(values["research-idle-minutes"])
@@ -258,6 +276,9 @@ local function apply(p)
   for _,k in ipairs(keys) do if values[k]~=opt(k) then settings.global["fnw-"..k]={value=values[k]} end end
   s.circuits=rules;s.circuit_revision=(s.circuit_revision or 0)+1
   load(p);d.feedback=tr("saved");build(p)
+  -- A safety pause stops periodic refreshes, so publish the new revision to
+  -- other open clean forms immediately after the complete apply transaction.
+  G.refresh_all()
 end
 local function request_close(p)
   if ui(p).dirty then ui(p).confirm="close";G.refresh(p) else destroy(p) end
@@ -330,6 +351,9 @@ end)
 script.on_event(defines.events.on_gui_closed,function(e)
   if internal_close[e.player_index] then return end
   if owned(e.element) and e.element.name==ROOT then request_close(game.get_player(e.player_index)) end
+end)
+script.on_event(defines.events.on_player_removed,function(e)
+  G.remove_player(e.player_index)
 end)
 local function selected(e)
   if e.item~="fnw-select-network" then return end

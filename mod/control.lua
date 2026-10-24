@@ -78,7 +78,9 @@ local function sync_presence()
     if s.empty_pause and not s.alarm then game.tick_paused=false end
     s.empty_pause=nil
   elseif not option("enabled") then
-    s.empty_pause=true
+    -- Only resume pauses that Night Watch started itself. A manual/other-mod
+    -- pause that predates the last player's departure must remain in place.
+    if not game.tick_paused then s.empty_pause=true end
     game.tick_paused=true
   else
     if s.empty_pause and not s.alarm then game.tick_paused=false end

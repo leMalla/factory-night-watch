@@ -5,7 +5,7 @@ local function check(value,label) assert(value,label);checks=checks+1;print("PAS
 local handlers,registered={},{}
 defines={events={}}
 for _,name in ipairs({"on_tick","on_player_joined_game","on_player_left_game","on_runtime_mod_setting_changed",
-  "on_entity_damaged","on_entity_died", "on_gui_text_changed", "on_gui_checked_state_changed", "on_gui_selection_state_changed", "on_gui_elem_changed", "on_lua_shortcut", "on_player_selected_area", "on_player_alt_selected_area", "on_player_cursor_stack_changed","on_gui_click","on_gui_closed","on_player_created","on_player_promoted","on_player_demoted"}) do defines.events[name]=name end
+  "on_entity_damaged","on_entity_died", "on_gui_text_changed", "on_gui_checked_state_changed", "on_gui_selection_state_changed", "on_gui_elem_changed", "on_lua_shortcut", "on_player_selected_area", "on_player_alt_selected_area", "on_player_cursor_stack_changed","on_player_removed","on_gui_click","on_gui_closed","on_player_created","on_player_promoted","on_player_demoted"}) do defines.events[name]=name end
 script={on_init=function(f) handlers.init=f end,on_load=function(f) handlers.load=f end,
   on_configuration_changed=function(f) handlers.configuration=f end,
   on_event=function(e,f) handlers[e]=f end,on_nth_tick=function(_,f) handlers.periodic=f end}
@@ -238,4 +238,58 @@ check(alarm_place and alarm_place.x==1 and alarm_place.y==2,'lost-source alarm r
 local snapshot2=Circuits.copy({snapshot})[1]
 check(snapshot2.place~=saved_place and snapshot2.place.x==1,'invalid source location survives copying without shared mutable tables')
 pole.valid=true
+-- Server changes must refresh clean forms without overwriting dirty drafts.
+storage.guard.circuits={}
+storage.guard.circuit_revision=(storage.guard.circuit_revision or 0)+1
+registered['fnw-gui']{player_index=1}
+registered['fnw-set']{parameter='research-idle-minutes 6'}
+check(find(frame(),'fnw_v_research-idle-minutes').text=='6','clean form refreshes when server settings change through a command')
+local changed_walls=not backing['fnw-ignore-walls'].value
+change('fnw_v_ignore-walls',changed_walls,'check');click('fnw_apply')
+check(backing['fnw-research-idle-minutes'].value==6 and backing['fnw-ignore-walls'].value==changed_walls,'unrelated GUI save preserves the current server setting')
+change('fnw_time','11')
+registered['fnw-set']{parameter='research-idle-minutes 7'}
+check(find(frame(),'fnw_time').text=='11' and storage.fnw_ui[1].dirty,'external settings changes preserve dirty draft inputs')
+click('fnw_apply')
+check(find(frame(),'fnw_feedback').caption[1]=='fnw-gui.settings-conflict' and backing['fnw-research-idle-minutes'].value==7,'dirty stale settings draft is rejected without overwriting new server values')
+click('fnw_reload')
+check(find(frame(),'fnw_v_research-idle-minutes').text=='7' and not storage.fnw_ui[1].dirty,'discard loads current settings after a settings conflict')
+local version_before=storage.fnw_ui[1].revision
+storage.guard.circuit_revision=storage.guard.circuit_revision+1
+handlers.on_player_promoted()
+check(storage.fnw_ui[1].revision==version_before+1 and not storage.fnw_ui[1].dirty,'clean form refreshes after another admin changes circuit revision')
+-- Removing a player must clear drafts before the engine can reuse their index.
+change('fnw_time','13')
+handlers.on_player_removed{player_index=1}
+check(storage.fnw_ui[1]==nil,'removed player draft is deleted')
+player.opened=nil
+player.gui={top=element{type='flow'},screen=element{type='flow'}}
+registered['fnw-gui']{player_index=1}
+check(not storage.fnw_ui[1].dirty and find(frame(),'fnw_time').text~='13','reused player index starts with current server values instead of the previous draft')
+-- An independently existing manual pause is not owned by empty-server mode.
+click('fnw_reload');change('fnw_mode',2,'select');click('fnw_apply')
+game.tick_paused=true;storage.guard.alarm=nil;storage.guard.empty_pause=nil
+game.connected_players={};handlers.on_player_left_game()
+check(game.tick_paused and not storage.guard.empty_pause,'empty-server mode does not claim an existing manual pause')
+game.connected_players={player};handlers.on_player_joined_game{player_index=1}
+check(game.tick_paused,'player joining does not release an independently existing manual pause')
+-- Paused worlds have no periodic tick: applying must refresh another viewer now.
+local other={valid=true,index=2,admin=true,print=function() end,
+  set_shortcut_available=function() end,
+  gui={top=element{type='flow'},screen=element{type='flow'}}}
+local previous_get_player=game.get_player
+game.get_player=function(index) if index==2 then return other else return player end end
+game.players={player,other};game.connected_players={player,other}
+require('gui').open(other)
+click('fnw_add');local added=#storage.fnw_ui[1].circuits
+change('fnw_c_name_'..added,'Second viewer')
+change('fnw_c_signal_'..added,{type='item',name='iron-plate'},'signal')
+change('fnw_c_enabled_'..added,false,'check');click('fnw_apply')
+local other_frame=other.gui.screen.fnw_window
+check(game.tick_paused and storage.fnw_ui[2].revision==storage.guard.circuit_revision and find(other_frame,'fnw_c_name_'..added).text=='Second viewer','successful circuit apply refreshes another clean GUI immediately while paused')
+local other_name=find(other_frame,'fnw_c_name_'..added);other_name.text='Other admin draft'
+handlers.on_gui_text_changed{player_index=2,element=other_name}
+change('fnw_v_ignore-walls',not backing['fnw-ignore-walls'].value,'check');click('fnw_apply')
+check(storage.fnw_ui[2].dirty and find(other.gui.screen.fnw_window,'fnw_c_name_'..added).text=='Other admin draft','apply refresh preserves another admins dirty GUI while paused')
+game.get_player=previous_get_player;game.players={player};game.connected_players={player}
 print('ALL '..checks..' GUI CHECKS PASSED')

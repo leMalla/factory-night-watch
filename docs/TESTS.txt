@@ -1,6 +1,6 @@
-Factory Night Watch 0.3.3 – validation, 2026-10-24
+Factory Night Watch 0.3.4 – validation, 2026-10-24
 
-34 integration checks with actual Factorio headless 2.1.23 build 87750, Space Age,
+36 Space Age integration checks with actual Factorio headless 2.1.23 build 87750, Space Age,
 local UDP/RCON and fresh maps:
 - Protected offline production, manual pause, emergency ZIP creation.
 - Save/reload persistence of a safety latch and explicit acknowledgement.
@@ -14,13 +14,14 @@ local UDP/RCON and fresh maps:
 - All six comparisons; cleared signal cannot release a latched alarm.
 - Missing selected cable and removed pole fail-safe pauses.
 - Circuit registry and alarm persistence across save/reload.
+- 32 active circuit rules run for five simulation minutes without a false pause.
 - Circuit copying in actual runtime without table.deepcopy, with independent signal records.
 - Source coordinates remain available after pole removal.
 
 The integration setup uses an extra test-only command in an isolated copy of the mod,
 solely to seed circuit rules without a client. This command is absent from the release.
 
-70 GUI/presence logic checks using Lua 5.4 mocks:
+82 GUI/presence logic checks using Lua 5.4 mocks:
 - Native shortcut, admin rights, forged event rejection, dirty-only save.
 - Explicit false checkbox values, numeric validation and decimal comma.
 - Unit conversion preserving actual duration.
@@ -43,6 +44,25 @@ solely to seed circuit rules without a client. This command is absent from the r
 - Live network ID and wire-colour display, topology changes and one-colour selection.
 - Independent stored coordinates survive invalid source references and rule copies.
 
+32 additional integration checks run with only base + Factory Night Watch,
+including real Nauvis surface association, enemy destruction and circuit signals.
+
+Review regressions additionally cover:
+- Clean settings/circuit drafts refresh after external changes, including while paused.
+- Stale dirty settings drafts cannot overwrite newer global settings.
+- Removed-player state is cleared before player-index reuse.
+- Joining does not release a pre-existing manual or other-mod pause.
+
+14 installer tests execute the embedded installer against temporary files/archives:
+- All Compose stop/up operations target the verified Factorio service only.
+- Project/service mismatches and unpacked overriding mods abort before stopping.
+- Snapshot-read/invalid-JSON failures abort before stopping.
+- Backup-read and partial-stop failures attempt service recovery.
+- Startup failure rolls back bytes, permissions, ownership calls and symlink form.
+- Missing original target is removed during rollback; successful backup is valid.
+- Readiness timeout, killed-server exit 137 and failed archive validation recover safely.
+Docker calls and ownership changes are mocked; no production service is touched.
+
 8 updater tests with isolated fake GitHub/installer responses:
 - Check-only, build-only and MIT license in the ZIP.
 - Successful install, unchanged no-op and forced reinstall.
@@ -56,7 +76,9 @@ German/English locale key parity, archive integrity, installer shell syntax,
 embedded Python syntax and embedded ZIP checksum checked during packaging.
 
 Limits of validation:
-No native Windows client was available to render the final GUI or perform selection
-with an actual mouse. Mock GUI checks do not prove pixel layout or native event timing.
+The maintainer confirmed 0.3.3 works in a real Windows client. The 0.3.4 review
+fixes still require one final live smoke test. Mock GUI checks do not prove
+pixel layout or every native event timing. Installer tests do not prove real
+Docker daemon behavior beyond the original deployment already exercised by the maintainer.
 First in-game check: open the bottom-right shortcut, review all three tabs, create a
 circuit rule, verify its live value, save it, then test and acknowledge a safety pause.

@@ -12,6 +12,8 @@ commands.add_command("fnw-it-rule", "Integration test only", function(cmd)
   local old=r.signal.name
   r.signal.name="signal-everything"
   assert(copied[1].signal.name==old)
-  state().circuits=copied
+  local rules={}
+  for i=1,(args.count or 1) do rules[i]=Circuits.copy(copied)[1] end
+  state().circuits=rules
   rcon.print("COPIED")
 end)

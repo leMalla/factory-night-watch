@@ -3,7 +3,7 @@
 Keep your cooperative Factorio factory running while everyone is offline, with
 configurable safety pauses when something needs attention.
 
-**Development version 0.3.3 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
+**Release candidate 0.3.4 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
 
 [Deutsche Anleitung](docs/README.de.md) · [Validation](docs/TESTS.txt) ·
 [Changelog](mod/changelog.txt)
@@ -34,7 +34,7 @@ Build the distribution using Python 3 (standard library only):
 python3 tools/build.py
 ```
 
-Copy `dist/factory-night-watch_0.3.3.zip` into each client's Factorio `mods`
+Copy `dist/factory-night-watch_0.3.4.zip` into each client's Factorio `mods`
 directory without extracting it. Remove older ZIP versions and restart Factorio.
 All clients and the server need the same version. This development build is not
 yet published on the Factorio Mod Portal.
@@ -76,11 +76,11 @@ as OR: any one can pause the world. Clear the cause before acknowledging.
 
 ```sh
 python3 tests/run.py
-python3 -m unittest discover -s tests -p test_update.py
+python3 -m unittest discover -s tests -p 'test_*.py'
 python3 tools/build.py
 ```
 
-The first command runs 70 GUI/presence checks with Lua mocks. Install Lua 5.4 or
+The first command runs GUI/presence regression checks with Lua mocks. Install Lua 5.4 or
 its shared library. The build validates metadata, matching locale keys, archive
 integrity, embedded installer Python and shell syntax when Bash is available.
 
@@ -89,18 +89,30 @@ Space Age data. They create their own maps and test-only mod copy:
 
 ```sh
 FACTORIO_BIN=/path/to/factorio/bin/x64/factorio python3 tests/integration.py
+FACTORIO_BIN=/path/to/factorio/bin/x64/factorio python3 tests/integration.py --base-only
 ```
 
-Ports 34997/UDP and 27995/TCP must be free. Both listeners bind to localhost.
+Space Age tests use 34997/UDP and 27995/TCP; base-only tests use 34998/UDP
+and 27996/TCP. These ports must be free; all listeners bind to localhost.
 Generated test data goes into ignored `build/integration/`. Never point tests at
 a production installation or save. The test-only bridge is excluded from builds.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
 
+## Development disclosure
+
+Developed with AI-assisted coding tools. Maintained by **dermalla**. The installed
+mod runs normal Factorio scripts and does not use an AI service during play.
+AI tools were used for code generation, documentation and review.
+
+Portal drafts: [description](docs/MOD_PORTAL.md) and [FAQ](docs/MOD_PORTAL_FAQ.md).
+
 ## Release readiness
 
-34 actual engine checks and 70 mock checks passed for 0.3.3. Native Windows GUI
-rendering and mouse interaction still need an in-game check. Backups remain
-necessary. There is no separate platform-hub health rule.
+Three independent pre-release reviews covered runtime behavior, GUI/state handling,
+and packaging/installer recovery. See [the review record](docs/RELEASE_REVIEW.md)
+and [validation details](docs/TESTS.txt). The maintainer confirmed the 0.3.3 GUI
+in a real client; the 0.3.4 review fixes need one final live smoke test.
+Backups remain necessary. There is no separate platform-hub health rule.
 
 Licensed under the [MIT License](LICENSE). Copyright (c) 2026 dermalla.
 The repository is currently private and the mod has not been published to the Mod Portal.

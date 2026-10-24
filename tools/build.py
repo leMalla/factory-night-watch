@@ -28,7 +28,7 @@ archive = output / f'{name}_{version}.zip'
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
     for file in sorted(SOURCE.rglob('*')):
         if file.is_file():
-            assert file.suffix in ('.lua', '.json', '.cfg', '.txt'), f'Unexpected mod file: {file}'
+            assert file.suffix in ('.lua', '.json', '.cfg', '.txt', '.png'), f'Unexpected mod file: {file}'
             entry = zipfile.ZipInfo(f'{name}_{version}/' + file.relative_to(SOURCE).as_posix(), (2026, 10, 24, 12, 0, 0))
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = 0o644 << 16

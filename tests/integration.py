@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import sys
 import signal
 import socket
 import struct
@@ -9,7 +10,10 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TEST = ROOT / 'build' / 'integration'
+BASE_ONLY = '--base-only' in sys.argv[1:]
+TEST = ROOT / 'build' / ('integration-base' if BASE_ONLY else 'integration')
+GAME_PORT = 34998 if BASE_ONLY else 34997
+RCON_PORT = 27996 if BASE_ONLY else 27995
 ENGINE = os.environ.get('FACTORIO_BIN')
 if not ENGINE:
     raise SystemExit('Set FACTORIO_BIN to the Factorio 2.1.23 headless executable.')
@@ -23,7 +27,7 @@ shutil.copytree(ROOT/'mod', source, dirs_exist_ok=True)
 bridge = (ROOT/'tests/engine-bridge.lua').read_text()
 with (source/'control.lua').open('a') as f:
     f.write('\n'+bridge)
-names = ['base', 'elevated-rails', 'quality', 'recycler', 'space-age', 'factory-night-watch']
+names = ['base', 'factory-night-watch'] if BASE_ONLY else ['base', 'elevated-rails', 'quality', 'recycler', 'space-age', 'factory-night-watch']
 (MODS/'mod-list.json').write_text(json.dumps({'mods':[{'name':n,'enabled':True} for n in names]}))
 data = Path(ENGINE).parents[2]/'data'
 (TEST/'config.ini').write_text('[path]\nread-data='+str(data)+'\nwrite-data='+str(TEST)+'\n')
@@ -92,14 +96,14 @@ def start(save):
     proc = subprocess.Popen([
         ENGINE, '--config', str(TEST/'config.ini'), '--mod-directory', str(MODS),
         '--start-server', str(save), '--server-settings', str(TEST/'server.json'),
-        '--bind', '127.0.0.1:34997', '--rcon-bind', '127.0.0.1:27995',
+        '--bind', f'127.0.0.1:{GAME_PORT}', '--rcon-bind', f'127.0.0.1:{RCON_PORT}',
         '--rcon-password', 'local-integration-test-only'
     ], stdin=subprocess.PIPE, stdout=logfile, stderr=subprocess.STDOUT)
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
         if proc.poll() is not None: raise RuntimeError('Server died: '+str(logfile.name))
         try:
-            sock = socket.create_connection(('127.0.0.1',27995),timeout=1)
+            sock = socket.create_connection(('127.0.0.1',RCON_PORT),timeout=1)
             break
         except OSError: time.sleep(.1)
     else: raise RuntimeError('Server startup timeout')
@@ -129,6 +133,7 @@ try:
     lua('rcon.print("warmup")')
     setting('research-pause',False)
     check(status()['offline'] and not status()['paused'], 'offline factory runs')
+    check('nauvis' in lua('rcon.print(game.surfaces.nauvis.planet and game.surfaces.nauvis.planet.name or "none")'), 'starting surface is a monitored real planet')
     command('/fnw-test-pause')
     check(status()['paused'] and status().get('alarm'), 'manual protection test latches pause')
     time.sleep(.5)
@@ -178,21 +183,36 @@ try:
     lua('game.surfaces.nauvis.create_entity{name="stone-furnace",position={15,0},force="enemy"}.die("player")')
     check(not status()['paused'], 'enemy-owned entities are excluded')
 
-    lua('local p=game.forces.player.create_space_platform{name="Guard test",planet="nauvis",starter_pack="space-platform-starter-pack"}; p.apply_starter_pack(); rcon.print(p.surface.name)')
-    lua('local p=game.forces.player.platforms[1]; p.hub.health=p.hub.max_health*.2; p.hub.damage(1,"enemy","physical")')
-    check(not status()['paused'], 'hub health alone no longer pauses')
-    setting('enabled',False)
-    check(status()['paused'] and not status().get('alarm'), 'empty-server pause mode pauses without creating an alarm')
-    setting('enabled',True)
-    time.sleep(.1)
-    check(not status()['paused'], 'protected mode resumes ordinary empty-server pause')
-    lua('game.forces.player.platforms[1].surface.create_entity{name="gun-turret",position={1,1},force="player"}.die("neutral")')
-    check(status()['paused'], 'platform structure loss without enemy attribution triggers')
+    if not BASE_ONLY:
+        lua('local p=game.forces.player.create_space_platform{name="Guard test",planet="nauvis",starter_pack="space-platform-starter-pack"}; p.apply_starter_pack(); rcon.print(p.surface.name)')
+        lua('local p=game.forces.player.platforms[1]; p.hub.health=p.hub.max_health*.2; p.hub.damage(1,"enemy","physical")')
+        check(not status()['paused'], 'hub health alone no longer pauses')
+        setting('enabled',False)
+        check(status()['paused'] and not status().get('alarm'), 'empty-server pause mode pauses without creating an alarm')
+        setting('enabled',True)
+        time.sleep(.1)
+        check(not status()['paused'], 'protected mode resumes ordinary empty-server pause')
+        lua('game.forces.player.platforms[1].surface.create_entity{name="gun-turret",position={1,1},force="player"}.die("neutral")')
+        check(status()['paused'], 'platform structure loss without enemy attribution triggers')
 
 
     command('/fnw-resume')
     lua('game.speed=1; local s=game.surfaces.nauvis; local p=s.create_entity{name="small-electric-pole",position={30,0},force="player"}; local c=s.create_entity{name="constant-combinator",position={31,0},force="player"};p.get_wire_connector(defines.wire_connector_id.circuit_red,true).connect_to(c.get_wire_connector(defines.wire_connector_id.circuit_red,true)); p.get_wire_connector(defines.wire_connector_id.circuit_green,true).connect_to(c.get_wire_connector(defines.wire_connector_id.circuit_green,true)); c.get_or_create_control_behavior().get_section(1).set_slot(1,{value={type="virtual",name="signal-A",quality="normal"},min=50})')
     time.sleep(1.1)
+    command('/fnw-it-rule {"op":">","threshold":999,"count":32}')
+    started_tick=int(lua('rcon.print(game.tick)'))
+    lua('game.speed=60')
+    deadline=time.monotonic()+25
+    while time.monotonic()<deadline:
+        if int(lua('rcon.print(game.tick)'))-started_tick>=18000:
+            break
+        time.sleep(.2)
+    else:
+        raise AssertionError('32-rule soak did not advance five simulation minutes')
+    current=status()
+    check(not current['paused'] and len(current['circuits'])==32 and all(r.get('value')==50 for r in current['circuits']), '32 active circuit rules run for five simulation minutes without false pause')
+    command('/fnw-it-rule {"clear":true}')
+    lua('game.speed=1')
     reply=command('/fnw-it-rule {"op":"<","threshold":100,"delay":3,"signal":{"type":"virtual","name":"signal-A","quality":"normal"}}')
     check('COPIED' in reply, 'real engine copies circuit signals without table.deepcopy and preserves entity references')
     time.sleep(1.2)

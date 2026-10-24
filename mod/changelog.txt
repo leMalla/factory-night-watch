@@ -1,4 +1,18 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.4
+Date: 2026-10-24
+  Bugfixes:
+    - Refresh clean GUI forms on external changes; reject stale dirty settings drafts.
+    - Remove GUI drafts when players are removed, before their index can be reused.
+    - Keep manually or externally paused games paused when players return.
+  Installation:
+    - Limit Docker Compose actions to the verified Factorio service.
+    - Reject unpacked copies that could override the installed mod ZIP.
+    - Recover the stopped service after installation failures, including snapshot-read failures.
+  Testing:
+    - Add installer failure-injection coverage and base-game integration mode.
+    - Allow thumbnail PNGs in release builds.
+---------------------------------------------------------------------------------------------------
 Version: 0.3.3
 Date: 2026-10-24
   Bugfixes:

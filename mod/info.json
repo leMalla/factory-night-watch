@@ -1,13 +1,14 @@
 {
   "name": "factory-night-watch",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "title": "Factory Night Watch",
   "author": "dermalla",
   "factorio_version": "2.1",
-  "description": "Keep multiplayer factories running offline with safety pauses, circuit conditions and a multilingual in-game control panel.",
+  "description": "Keep multiplayer factories running while the server is empty. Configurable safety pauses for structure loss, an empty research queue, offline time limits, and circuit conditions.",
   "dependencies": [
     "base >= 2.1.23",
     "? space-age",
     "? blueprint-sandboxes"
-  ]
+  ],
+  "homepage": "https://github.com/leMalla/factory-night-watch"
 }
