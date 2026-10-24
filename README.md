@@ -3,7 +3,7 @@
 Keep your cooperative Factorio factory running while everyone is offline, with
 configurable safety pauses when something needs attention.
 
-**Development version 0.3.2 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
+**Development version 0.3.3 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
 
 [Deutsche Anleitung](docs/README.de.md) · [Validation](docs/TESTS.txt) ·
 [Changelog](mod/changelog.txt)
@@ -14,7 +14,8 @@ configurable safety pauses when something needs attention.
 - Default time limit: 7 simulation days; configurable or unlimited.
 - Optional named circuit conditions: select a wired pole, red/green network,
   signal and quality, comparison, threshold and continuous delay.
-- Live signal values; offline safety pause if an enabled rule loses its pole or cable.
+- Live signal values and network IDs; offline safety pause if an enabled rule loses its pole or cable.
+- Source coordinates stay saved for alarm-location viewing even after a pole is removed.
 - Bottom-right native shortcut with Overview, Rules and Advanced tabs.
 - Admin-only changes, save/discard drafts and confirmation before a test pause.
 - Persistent safety alarms, offline timers and circuit rules across save/reload.
@@ -33,7 +34,7 @@ Build the distribution using Python 3 (standard library only):
 python3 tools/build.py
 ```
 
-Copy `dist/factory-night-watch_0.3.2.zip` into each client's Factorio `mods`
+Copy `dist/factory-night-watch_0.3.3.zip` into each client's Factorio `mods`
 directory without extracting it. Remove older ZIP versions and restart Factorio.
 All clients and the server need the same version. This development build is not
 yet published on the Factorio Mod Portal.
@@ -79,7 +80,7 @@ python3 -m unittest discover -s tests -p test_update.py
 python3 tools/build.py
 ```
 
-The first command runs 54 GUI/presence checks with Lua mocks. Install Lua 5.4 or
+The first command runs 70 GUI/presence checks with Lua mocks. Install Lua 5.4 or
 its shared library. The build validates metadata, matching locale keys, archive
 integrity, embedded installer Python and shell syntax when Bash is available.
 
@@ -97,7 +98,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
 
 ## Release readiness
 
-32 actual engine checks and 54 mock checks passed for 0.3.2. Native Windows GUI
+34 actual engine checks and 70 mock checks passed for 0.3.3. Native Windows GUI
 rendering and mouse interaction still need an in-game check. Backups remain
 necessary. There is no separate platform-hub health rule.
 

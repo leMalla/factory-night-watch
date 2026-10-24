@@ -2,6 +2,7 @@ local G={}
 local C=require("circuits")
 local callbacks={}
 local ROOT="fnw_window"
+local LAYOUT=1
 -- Suppress only synchronous close notifications caused by our own teardown.
 local internal_close={}
 local keys={"enabled","max-offline-hours","research-pause","research-idle-minutes","destruction-pause","ignore-walls","ignore-robots","emergency-save","forces","excluded-surfaces"}
@@ -58,6 +59,12 @@ end
 local function checkbox(parent,p,key)
   return parent.add{type="checkbox",name="fnw_v_"..key,caption={"mod-setting-name.fnw-"..key},state=ui(p).values[key],tags={fnw_edit=true},tooltip={"mod-setting-description.fnw-"..key}}
 end
+local function network_caption(r)
+  if not r.entity then return tr("no-network") end
+  local network,err=C.network(r,callbacks.eligible)
+  if not network then return tr(err) end
+  return tr("network-label",network.network_id,tr(r.wire==2 and "green" or "red"),r.entity.surface.name)
+end
 local function circuit_editor(parent,p,i,r)
   local box=parent.add{type="frame",direction="vertical",style="inside_shallow_frame"}
   local head=box.add{type="flow",direction="horizontal"}
@@ -66,8 +73,8 @@ local function circuit_editor(parent,p,i,r)
   row(box,"name",{type="textfield",name="fnw_c_name_"..i,text=r.name})
   local source=box.add{type="flow",direction="horizontal"}
   button(source,"fnw_select_"..i,"select-network",true)
-  local loc=r.entity and r.entity.valid and (r.entity.surface.name..string.format(" · %.0f, %.0f",r.entity.position.x,r.entity.position.y)) or tr("no-network")
-  local l=source.add{type="label",caption=loc};l.style.width=330;l.style.single_line=false
+  local l=source.add{type="label",name="fnw_c_network_"..i,caption=network_caption(r)}
+  l.style.width=330;l.style.single_line=false
   row(box,"wire",{type="drop-down",name="fnw_c_wire_"..i,items={tr("red"),tr("green")},selected_index=r.wire})
   row(box,"signal",{type="choose-elem-button",name="fnw_c_signal_"..i,elem_type="signal",signal=r.signal})
   row(box,"operator",{type="drop-down",name="fnw_c_op_"..i,items=C.operators,selected_index=(function() for n,v in ipairs(C.operators) do if v==r.op then return n end end return 6 end)()})
@@ -80,7 +87,7 @@ function G.ensure(p)
   if not p or not p.valid then return end
   local legacy=p.gui.top.fnw_toggle;if legacy then legacy.destroy() end
   local old=window(p)
-  if old and (not find(old,"fnw_tabs") or not find(old,"fnw_jump") or not find(old,"fnw_confirm_panel")) then destroy(p);state()[p.index]=nil end
+  if old and (old.tags.fnw_layout~=LAYOUT or not find(old,"fnw_tabs") or not find(old,"fnw_jump") or not find(old,"fnw_confirm_panel")) then destroy(p);state()[p.index]=nil end
   p.set_shortcut_available("fnw-open",true)
 end
 function G.refresh(p)
@@ -113,6 +120,7 @@ function G.refresh(p)
   end
   permissions(f)
   for i,r in ipairs(d.circuits) do
+    find(f,"fnw_c_network_"..i).caption=network_caption(r)
     local value,problem=C.read(r,callbacks.eligible)
     local live=(s.circuits or {})[i]
     local text
@@ -140,7 +148,7 @@ local function build(p)
     destroy(p)
   end
   local d=ui(p)
-  local f=p.gui.screen.add{type="frame",name=ROOT,direction="vertical"};f.style.width=620
+  local f=p.gui.screen.add{type="frame",name=ROOT,direction="vertical",tags={fnw_layout=LAYOUT}};f.style.width=620
   local title=f.add{type="flow",direction="horizontal"}
   title.add{type="label",caption="Factory Night Watch",style="frame_title"}
   local drag=title.add{type="empty-widget",style="draggable_space_header"};drag.style.horizontally_stretchable=true;drag.style.height=24;drag.drag_target=f
@@ -223,7 +231,9 @@ local function feedback(p,key,...)
 end
 local function numeric(raw) return tonumber((tostring(raw):gsub(",","."))) end
 local function apply(p)
-  local d=ui(p);local values=table.deepcopy(d.values)
+  local d=ui(p);local values={}
+  -- Runtime settings are flat booleans, numbers and strings.
+  for key,value in pairs(d.values) do values[key]=value end
   local minutes=numeric(values["research-idle-minutes"])
   local t=numeric(d.time)
   if not minutes or minutes~=minutes or minutes<0.1 or minutes>1440 or (d.limit and (not t or t~=t or t<=0 or t*(d.unit==2 and 24 or 1)>8760)) then feedback(p,"invalid-number");return end
@@ -328,7 +338,11 @@ local function selected(e)
   if #e.entities~=1 or not callbacks.eligible(e.entities[1]) then p.print(tr("select-one"));return end
   local pole=e.entities[1]
   if not pole.get_circuit_network(defines.wire_connector_id.circuit_red) and not pole.get_circuit_network(defines.wire_connector_id.circuit_green) then p.print(tr("no-cable"));return end
-  d.circuits[d.selecting].entity=pole;d.dirty=true;d.selecting=nil
+  local r=d.circuits[d.selecting]
+  r.entity=pole;r.place=C.location(r)
+  local chosen=r.wire==2 and defines.wire_connector_id.circuit_green or defines.wire_connector_id.circuit_red
+  if not pole.get_circuit_network(chosen) then r.wire=r.wire==2 and 1 or 2 end
+  d.dirty=true;d.selecting=nil
   p.clear_cursor();build(p)
 end
 script.on_event(defines.events.on_player_selected_area,selected)

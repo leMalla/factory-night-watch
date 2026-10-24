@@ -48,9 +48,7 @@ local function element(spec,parent)
   e.remove_name=function(name) named[name]=nil end
   return e
 end
-local deepcopy
-deepcopy=function(t) if type(t)~="table" or t.valid~=nil then return t end;local o={};for k,v in pairs(t) do o[k]=deepcopy(v) end;return o end
-table.deepcopy=deepcopy
+assert(table.deepcopy==nil,"runtime tests must not inject table.deepcopy")
 helpers={table_to_json=function() return "message" end}
 prototypes={item={["iron-plate"]={}},fluid={},virtual_signal={},quality={normal={}}}
 defines.wire_connector_id={circuit_red=1,circuit_green=2}
@@ -115,7 +113,7 @@ click('fnw_cancel');check(frame() and storage.fnw_ui[1].dirty,"cancel close pres
 click('fnw_reload');click('fnw_add')
 change('fnw_c_name_1','Munition');change('fnw_c_signal_1',{type='item',name='iron-plate'},'signal')
 local pole={valid=true,type='electric-pole',name='small-electric-pole',position={x=1,y=2},force=game.forces.player,
- surface={valid=true,name='nauvis',planet={}},get_circuit_network=function() return {} end,get_signal=function() return 50 end}
+ surface={valid=true,name='nauvis',planet={}},get_circuit_network=function(id) return {network_id=id==1 and 42 or 43} end,get_signal=function() return 50 end}
 click('fnw_select_1');check(not frame() and storage.fnw_ui[1].selecting==1,"selection tool preserves draft while window closed")
 handlers.on_player_selected_area{player_index=1,item='fnw-select-network',entities={pole}}
 check(frame() and storage.fnw_ui[1].circuits[1].entity==pole,"pole selection returns to draft")
@@ -203,4 +201,41 @@ player.opened=foreign
 check(player.opened==foreign and storage.fnw_ui[1].confirm=='close','opening another GUI keeps its focus and preserves dirty draft')
 click('fnw_confirm')
 check(not frame() and foreign.valid and player.opened==foreign,'discarding Night Watch draft leaves the other GUI intact')
+local Circuits=require('circuits')
+local original={name='Copy test',entity=pole,wire=2,signal={type='item',name='iron-plate',quality='legendary'},op='≤',threshold=-10,delay=0,enabled=false}
+local copied=Circuits.copy({original})
+check(copied[1]~=original and copied[1].signal~=original.signal,'rule and signal tables are independent without runtime table extensions')
+check(copied[1].entity==pole and copied[1].signal.quality=='legendary','copy retains entity reference and exact signal quality')
+copied[1].signal.name='copper-plate'
+check(original.signal.name=='iron-plate','editing a copied signal cannot mutate the active signal')
+check(copied[1].enabled==false and copied[1].delay==0 and copied[1].threshold==-10,'copy preserves false, zero and negative values')
+check(#Circuits.copy(nil)==0,'absent circuit list copies safely')
+registered['fnw-gui']{player_index=1}
+change('fnw_v_research-idle-minutes','4,25');click('fnw_apply')
+check(backing['fnw-research-idle-minutes'].value==4.25 and not storage.fnw_ui[1].dirty,'settings save succeeds without table.deepcopy')
+change('fnw_c_name_1','Saved circuit regression');click('fnw_apply')
+check(storage.guard.circuits[1].name=='Saved circuit regression' and find(frame(),'fnw_feedback').caption[1]=='fnw-gui.saved','circuit save and reload succeed without table.deepcopy')
+change('fnw_c_name_1','Uncommitted circuit draft')
+check(storage.guard.circuits[1].name=='Saved circuit regression','unsaved circuit edits do not mutate installed rules')
+local source_caption=find(frame(),'fnw_c_network_1').caption
+check(source_caption[1]=='fnw-gui.network-label' and source_caption[2]==42,'source display uses actual red circuit network ID instead of coordinates')
+change('fnw_c_wire_1',2,'select')
+check(find(frame(),'fnw_c_network_1').caption[2]==43,'switching wire colour immediately shows the other network ID')
+pole.get_circuit_network=function() return {network_id=99} end;handlers.on_player_promoted()
+check(find(frame(),'fnw_c_network_1').caption[2]==99,'network ID display follows current topology instead of a cached ID')
+pole.get_circuit_network=function(id) if id==2 then return {network_id=101} end end
+click('fnw_select_1');handlers.on_player_selected_area{player_index=1,item='fnw-select-network',entities={pole}}
+check(storage.fnw_ui[1].circuits[1].wire==2 and find(frame(),'fnw_c_network_1').caption[2]==101,'network selection chooses the connected wire when the other colour is absent')
+frame().tags={};handlers.configuration()
+check(not frame(),'older GUI layouts rebuild before refreshing newly added network labels')
+local snapshot=Circuits.copy({original})[1]
+check(snapshot.place and snapshot.place.x==1 and snapshot.place.y==2 and snapshot.place.surface=='nauvis','circuit copy persists coordinates separately from the entity reference')
+local saved_place=snapshot.place
+pole.valid=false;local alarm_place
+snapshot.enabled=true
+Circuits.poll({snapshot},true,nil,function(_,place) alarm_place=place end)
+check(alarm_place and alarm_place.x==1 and alarm_place.y==2,'lost-source alarm retains saved coordinates for map jump')
+local snapshot2=Circuits.copy({snapshot})[1]
+check(snapshot2.place~=saved_place and snapshot2.place.x==1,'invalid source location survives copying without shared mutable tables')
+pole.valid=true
 print('ALL '..checks..' GUI CHECKS PASSED')

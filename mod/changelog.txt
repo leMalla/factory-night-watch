@@ -1,4 +1,17 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.3
+Date: 2026-10-24
+  Bugfixes:
+    - Remove unavailable table.deepcopy calls from runtime settings save and circuit copying.
+    - Copy flat settings and signal records without prototype-stage helper extensions.
+    - Keep source coordinates when the selected pole disappears, allowing alarm-location viewing.
+  Gui:
+    - Show the live circuit-network ID, wire colour and surface instead of pole coordinates.
+    - Auto-select the connected wire colour when choosing a network with only one wire colour.
+  Testing:
+    - Remove table.deepcopy from GUI mocks; exercise signal copying in the actual runtime.
+    - Cover saved-position fallback after source removal and live network-ID updates.
+---------------------------------------------------------------------------------------------------
 Version: 0.3.2
 Date: 2026-10-24
   Bugfixes:
