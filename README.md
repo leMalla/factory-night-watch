@@ -130,8 +130,9 @@ Portal drafts: [description](docs/MOD_PORTAL.md) and [FAQ](docs/MOD_PORTAL_FAQ.m
 Three independent pre-release reviews covered runtime behavior, GUI/state handling,
 and packaging/installer recovery. See [the 0.3.4 review record](docs/RELEASE_REVIEW.md)
 and [validation details](docs/TESTS.txt). The maintainer confirmed the 0.3.4 GUI
-in a real client; the 0.3.6 network-selection extension needs one final live smoke test.
+in a real client; the network-selection UI has also been inspected in client screenshots. A full offline
+circuit-trigger test in the live save is still recommended.
 Backups remain necessary. There is no separate platform-hub health rule.
 
 Licensed under the [MIT License](LICENSE). Copyright (c) 2026 dermalla.
-The repository is currently private and the mod has not been published to the Mod Portal.
+The mod has not yet been published to the Mod Portal.

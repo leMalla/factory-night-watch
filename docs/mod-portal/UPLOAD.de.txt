@@ -1,0 +1,16 @@
+Factory Night Watch 0.3.7 – Mod-Portal vorbereiten
+
+1. Auf https://mods.factorio.com/ mit deinem Factorio-Konto anmelden.
+2. Submit Mod öffnen und factory-night-watch_0.3.7.zip unverändert auswählen.
+   Nicht das gesamte Vorbereitungs-Paket hochladen!
+3. Felder aus listing.txt übernehmen.
+4. Inhalt von description.md als Beschreibung einfügen (ohne Dateinamen).
+5. Inhalt von faq.md in den FAQ-Bereich übernehmen, gegebenenfalls nach dem Anlegen.
+6. screenshot-circuit-condition.png in die Galerie laden. Die Fußzeile dieser
+   Aufnahme wurde kosmetisch retuschiert. Weitere Aufnahmen zeigen den Stand
+   vor der Korrektur der Speicheranzeige in 0.3.6.
+7. Vorschau kontrollieren und erst dann veröffentlichen.
+
+Das Vorschaubild ist bereits im Mod-ZIP als thumbnail.png enthalten.
+Das GitHub-Repository sollte vor dem Veröffentlichen öffentlich sein.
+Dieser Ordner und das Vorbereitungs-Paket veröffentlichen selbst nichts.

@@ -100,7 +100,7 @@ Weitere Ereignisse desselben Spielticks können noch auftreten.
 
 ## Installation / Update
 
-Direkte Updates vom privaten GitHub-Repository sind in [UPDATES.md](UPDATES.md)
+Direkte Updates vom GitHub-Repository sind in [UPDATES.md](UPDATES.md)
 beschrieben. Nach einmaliger Einrichtung reicht `~/.local/bin/factorio-mod-update`.
 Lizenz: [MIT](../LICENSE), Copyright (c) 2026 dermalla.
 
@@ -125,7 +125,7 @@ wieder her; bei vollständigem Spielstand-Rollback den Rücksetzpunkt verwenden.
 Upgrades innerhalb der Mod-ID behalten Einstellungen, Offline-Uhr und Alarm. Die entfernten
 Hub-Einstellungen werden von Factorio verworfen. Ein vorhandener Alarm aus einer alten Version
 bleibt bis zur Bestätigung erhalten. Blueprint Sandboxes bleibt separat installiert.
-Diese private Version ist nicht im Modportal und wird von dort nicht automatisch synchronisiert.
+Diese Version ist noch nicht im Modportal und wird von dort nicht automatisch synchronisiert.
 
 ### Befehle
 

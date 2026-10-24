@@ -1,0 +1,10 @@
+Title: Factory Night Watch
+Internal name: factory-night-watch
+Version: 0.3.7
+Category: Utilities
+Tag: Circuit network
+License: MIT
+Source URL: https://github.com/leMalla/factory-night-watch
+
+Summary:
+Keep multiplayer factories running while the server is empty. Configurable safety pauses for structure loss, an empty research queue, offline time limits, and circuit conditions.

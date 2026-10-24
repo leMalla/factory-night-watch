@@ -1,6 +1,6 @@
 # Updates direkt von GitHub
 
-Das Repository `leMalla/factory-night-watch` kann privat bleiben. Der Server
+Der Updater lädt `leMalla/factory-night-watch` direkt von GitHub. Der Server
 meldet sich einmal bei GitHub an. Danach ist kein WinSCP mehr erforderlich.
 Die Anmeldung in ChatGPT und die Anmeldung auf deinem Server sind getrennt.
 
@@ -15,7 +15,7 @@ gh auth login --hostname github.com --git-protocol https --web
 ```
 
 Den angezeigten Gerätecode am eigenen PC unter der von GitHub angegebenen URL
-bestätigen. Mit dem Konto anmelden, das Zugriff auf das private Repository hat.
+bestätigen. Mit dem Konto anmelden, das Zugriff auf das Repository hat.
 Die Git-Authentifizierung muss für diesen API-basierten Updater nicht eingerichtet
 werden. Keine Tokens in den Chat oder in Shell-Befehle kopieren.
 
@@ -46,7 +46,7 @@ SETUP
 ```
 
 Standardordner: `~/docker/factorio`, beim ursprünglichen Server also
-`/home/malla/docker/factorio`. Für einen anderen Ort:
+`/home/<benutzer>/docker/factorio`. Für einen anderen Ort:
 
 ```bash
 ~/.local/bin/factorio-mod-update --project /pfad/zum/factorio-projekt
