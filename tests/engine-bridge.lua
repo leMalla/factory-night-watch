@@ -53,3 +53,10 @@ commands.add_command('fnw-it-areas','Integration test only',function(cmd)
   state().excluded_areas=state().excluded_areas or {}
   table.insert(state().excluded_areas,a)
 end)
+
+commands.add_command('fnw-it-exclusions','Integration test only',function(cmd)
+  local args=helpers.json_to_table(cmd.parameter)
+  if args.status then rcon.print(helpers.table_to_json(Exclusions.list(state().excluded_entities)));return end
+  local lookup,err=Exclusions.compile(args.names or {},state().excluded_entities)
+  assert(lookup,err);state().excluded_entities=lookup
+end)

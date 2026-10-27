@@ -170,6 +170,20 @@ try:
     setting('research-pause',False)
     command('/fnw-resume')
 
+    # Exact building prototypes are excluded globally, independently of area rules.
+    command('/fnw-it-exclusions {"names":["stone-furnace","wooden-chest","stone-furnace"]}')
+    check(len(json.loads(command('/fnw-it-exclusions {"status":true}')))==2, 'real prototype list is validated and deduplicated')
+    lua('game.surfaces.nauvis.create_entity{name="stone-furnace",position={-60,-60},force="player"}.die("enemy")')
+    check(not status()['paused'], 'explicit furnace exclusion suppresses real destruction event')
+    lua('game.surfaces.nauvis.create_entity{name="wooden-chest",position={-65,-65},force="player"}.die("enemy")')
+    check(not status()['paused'], 'multiple building prototypes can be excluded together')
+    lua('game.surfaces.nauvis.create_entity{name="iron-chest",position={-65,-65},force="player"}.die("enemy")')
+    check(status()['paused'], 'another container prototype remains monitored')
+    command('/fnw-resume');command('/fnw-it-exclusions {"names":[]}')
+    lua('game.surfaces.nauvis.create_entity{name="stone-furnace",position={-60,-60},force="player"}.die("enemy")')
+    check(status()['paused'], 'clearing prototype exclusions restores destruction alarms')
+    command('/fnw-resume');command('/fnw-it-exclusions {"names":["wooden-chest"]}')
+
     # Persisted exclusions on real engine surfaces, with genuine destruction events.
     command('/fnw-it-areas '+json.dumps({'left':-40,'top':-40,'right':-20,'bottom':-20}))
     lua('game.surfaces.nauvis.create_entity{name="stone-furnace",position={-30,-30},force="player"}.die("enemy")')
@@ -188,6 +202,8 @@ try:
     command('/fnw-test-pause')
     region_save=max((TEST/'saves').glob('factory-night-watch-emergency-*.zip'),key=lambda p:p.stat().st_mtime_ns)
     stop();start(region_save);command('/fnw-resume')
+    check(json.loads(command('/fnw-it-exclusions {"status":true}'))==['wooden-chest'], 'building exclusion list survives native save/reload')
+    command('/fnw-it-exclusions {"names":[]}')
     areas=json.loads(command('/fnw-it-areas {"status":true}'))
     check(len(areas)==1 and areas[0]['left']==-40, 'exclusion geometry and surface survive actual save/reload')
     lua('game.surfaces.nauvis.create_entity{name="stone-furnace",position={-30,-30},force="player"}.die("enemy")')
@@ -237,6 +253,7 @@ try:
     lua('game.speed=1; local s=game.surfaces.nauvis; local p=s.create_entity{name="small-electric-pole",position={30,0},force="player"}; local c=s.create_entity{name="constant-combinator",position={31,0},force="player"};p.get_wire_connector(defines.wire_connector_id.circuit_red,true).connect_to(c.get_wire_connector(defines.wire_connector_id.circuit_red,true)); p.get_wire_connector(defines.wire_connector_id.circuit_green,true).connect_to(c.get_wire_connector(defines.wire_connector_id.circuit_green,true)); c.get_or_create_control_behavior().get_section(1).set_slot(1,{value={type="virtual",name="signal-A",quality="normal"},min=50})')
     time.sleep(1.1)
     command('/fnw-it-areas '+json.dumps({'left':-1000,'top':-1000,'right':1000,'bottom':1000}))
+    command('/fnw-it-exclusions {"names":["small-electric-pole"]}')
     command('/fnw-it-rule {"op":">","threshold":999,"count":32}')
     started_tick=int(lua('rcon.print(game.tick)'))
     lua('game.speed=60')

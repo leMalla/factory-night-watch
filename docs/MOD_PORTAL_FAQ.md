@@ -91,3 +91,11 @@ Both stay until you use Back to excluded areas, reopen the main GUI or disconnec
 The return panel shows unsaved changes; Save and return applies all pending
 settings using normal validation and admin conflict checks. Viewing alone does
 not save, and returning does not resume a safety pause.
+
+## Can I ignore other building types besides walls and robots?
+
+Yes. Advanced → Additional building exclusions provides an entity picker and
+editable list. Select each exact building variant and Save. All qualities of that
+prototype are excluded from structure-loss alarms on all monitored surfaces.
+For example, excluding a transport belt does not exclude fast transport belts.
+Other safety rules stay active, including circuit rules using excluded buildings.

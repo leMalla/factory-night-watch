@@ -1,10 +1,11 @@
 local G={}
 local C=require("circuits")
 local A=require("areas")
+local E=require("exclusions")
 local callbacks={}
 local ROOT="fnw_window"
 local PREVIEW="fnw_area_preview"
-local LAYOUT=3
+local LAYOUT=4
 -- Suppress only synchronous close notifications caused by our own teardown.
 local internal_close={}
 local build
@@ -65,6 +66,7 @@ local function load(p)
   for _,k in ipairs(keys) do d.values[k]=opt(k);d.baseline[k]=opt(k) end
   local hours=opt("max-offline-hours")
   d.limit=hours>0;d.unit=hours%24==0 and 2 or 1;d.time=tostring(hours>0 and hours/(d.unit==2 and 24 or 1) or 7)
+  d.excluded_entities=E.list((storage.guard or {}).excluded_entities)
   d.areas=A.copy((storage.guard or {}).excluded_areas)
   d.circuits=C.copy((storage.guard or {}).circuits)
   d.revision=(storage.guard or {}).circuit_revision or 0
@@ -124,6 +126,11 @@ local function choose(r,option)
   r.wire=option and option.wire or 1
   r.place=option and C.location(option) or nil
 end
+local function excluded_caption(name)
+  if name=="" then return tr("choose-building") end
+  local prototype=prototypes.entity[name]
+  return prototype and prototype.localised_name or tr("missing-building",name)
+end
 local function circuit_editor(parent,p,i,r)
   local box=parent.add{type="frame",direction="vertical",style="inside_shallow_frame"}
   local head=box.add{type="flow",direction="horizontal"}
@@ -159,6 +166,7 @@ function G.ensure(p)
   if not p or not p.valid then return end
   local legacy=p.gui.top.fnw_toggle;if legacy then legacy.destroy() end
   local d=ui(p)
+  if not d.excluded_entities then d.excluded_entities=E.list((storage.guard or {}).excluded_entities) end
   if not d.areas then d.areas=A.copy((storage.guard or {}).excluded_areas) end
   local old=window(p)
   if old and (old.tags.fnw_layout~=LAYOUT or not find(old,"fnw_tabs") or not find(old,"fnw_jump") or not find(old,"fnw_confirm_panel")) then destroy(p);state()[p.index]=nil end
@@ -201,6 +209,9 @@ function G.refresh(p)
     for _,c in pairs(e.children) do permissions(c) end
   end
   permissions(f)
+  for i,name in ipairs(d.excluded_entities) do
+    find(f,"fnw_e_caption_"..i).caption=excluded_caption(name)
+  end
   for i,r in ipairs(d.circuits) do
     find(f,"fnw_c_network_"..i).caption=network_caption(r)
     local items,selected=choices(r)
@@ -264,6 +275,17 @@ build=function(p)
   label(rules,tr("simulation-help"))
   local adv=pages[3]
   label(adv,tr("exceptions"));checkbox(adv,p,"ignore-walls");checkbox(adv,p,"ignore-robots")
+  label(adv,tr("excluded-buildings"));label(adv,tr("excluded-buildings-help"))
+  if #d.excluded_entities==0 then label(adv,tr("no-excluded-buildings")) end
+  for i,name in ipairs(d.excluded_entities) do
+    local line=adv.add{type="flow",direction="horizontal"}
+    line.add{type="choose-elem-button",name="fnw_e_entity_"..i,elem_type="entity",
+      entity=prototypes.entity[name] and name or nil,elem_filters={{filter="flag",flag="player-creation"}},tags={fnw_edit=true}}
+    local caption=line.add{type="label",name="fnw_e_caption_"..i,caption=excluded_caption(name)}
+    caption.style.width=300;caption.style.single_line=false
+    button(line,"fnw_e_remove_"..i,"remove",true)
+  end
+  button(adv,"fnw_e_add","add-excluded-building",true)
   label(adv,tr("areas"));label(adv,tr("areas-help"))
   if #d.areas==0 then label(adv,tr("no-areas")) end
   for i,a in ipairs(d.areas) do
@@ -347,6 +369,8 @@ local function apply(p)
     count=count+1
   end
   if count==0 then feedback(p,"empty-force");return end
+  local excluded,exclusion_error=E.compile(d.excluded_entities,(storage.guard or {}).excluded_entities)
+  if not excluded then feedback(p,exclusion_error);return end
   local areas=A.copy(d.areas)
   if not A.validate(areas) then feedback(p,"invalid-area");return end
   local rules=C.copy(d.circuits)
@@ -359,6 +383,7 @@ local function apply(p)
   if d.revision~=(s.circuit_revision or 0) then feedback(p,"conflict");return end
   -- All fields and rules have been validated before modifying server state.
   for _,k in ipairs(keys) do if values[k]~=opt(k) then settings.global["fnw-"..k]={value=values[k]} end end
+  s.excluded_entities=excluded
   s.excluded_areas=areas
   s.circuits=rules;s.circuit_revision=(s.circuit_revision or 0)+1
   load(p);d.feedback=tr("saved");build(p)
@@ -383,6 +408,11 @@ local function changed(event)
     local t=numeric(d.time)
     if t then d.time=tostring(t*(d.unit==2 and 24 or 1)/(e.selected_index==2 and 24 or 1));find(window(p),"fnw_time").text=d.time end
     d.unit=e.selected_index
+  elseif name:match("^fnw_e_entity_(%d+)$") then
+    local index=tonumber(name:match("(%d+)$"))
+    if not d.excluded_entities[index] then return end
+    if e.elem_value and not prototypes.entity[e.elem_value] then feedback(p,"invalid-building");return end
+    d.excluded_entities[index]=e.elem_value or ""
   elseif name:match("^fnw_a_") then
     local field,index=name:match("^fnw_a_([a-z]+)_(%d+)$");index=tonumber(index)
     local area=index and d.areas[index]
@@ -450,7 +480,14 @@ script.on_event(defines.events.on_gui_click,function(event)
     return
   end
   if not p.admin then return end
-  if name=="fnw_area_add" then
+  if name=="fnw_e_add" then
+    if #d.excluded_entities>=E.limit then feedback(p,"building-limit");return end
+    d.excluded_entities[#d.excluded_entities+1]="";d.dirty=true;d.feedback=nil;build(p)
+  elseif name:match("^fnw_e_remove_(%d+)$") then
+    local index=tonumber(name:match("(%d+)$"))
+    if not d.excluded_entities[index] then return end
+    table.remove(d.excluded_entities,index);d.dirty=true;d.feedback=nil;build(p)
+  elseif name=="fnw_area_add" then
     if #d.areas>=A.limit then feedback(p,"area-limit");return end
     if not p.clear_cursor() then feedback(p,"cursor-busy");return end
     d.selecting=nil;d.selecting_area=true;destroy(p)

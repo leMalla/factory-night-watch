@@ -50,7 +50,7 @@ local function element(spec,parent)
 end
 assert(table.deepcopy==nil,"runtime tests must not inject table.deepcopy")
 helpers={table_to_json=function() return "message" end}
-prototypes={item={["iron-plate"]={}},fluid={},virtual_signal={},quality={normal={}}}
+prototypes={entity={},item={["iron-plate"]={}},fluid={},virtual_signal={},quality={normal={}}}
 defines.wire_connector_id={circuit_red=1,circuit_green=2,combinator_input_red=1,combinator_input_green=2,combinator_output_red=3,combinator_output_green=4,pole_copper=16}
 defines.wire_type={red=1,green=2,copper=3}
 defines.controllers={remote=9}
@@ -543,5 +543,75 @@ click('fnw_area_view_1')
 local removal_objects=storage.fnw_ui[1].preview.objects
 handlers.on_player_removed{player_index=1}
 check(not removal_objects[1].valid and not removal_objects[2].valid and storage.fnw_ui[1]==nil,'removed player cannot leave immortal preview render objects')
+
+-- Additional entity prototype exclusions, transactional GUI and death filtering.
+local Exclusions=require('exclusions')
+prototypes.entity={['stone-furnace']={localised_name={'entity-name.stone-furnace'}},['transport-belt']={localised_name={'entity-name.transport-belt'}},['fast-transport-belt']={localised_name={'entity-name.fast-transport-belt'}}}
+storage.guard.excluded_entities={};storage.guard.excluded_areas={};storage.guard.circuits={}
+registered['fnw-gui']{player_index=1}
+player.admin=false;handlers.on_player_demoted();click('fnw_e_add')
+check(#storage.fnw_ui[1].excluded_entities==0,'non-admin cannot add a building exclusion')
+player.admin=true;handlers.on_player_promoted();click('fnw_e_add')
+check(find(frame(),'fnw_e_entity_1').elem_type=='entity' and find(frame(),'fnw_e_entity_1').elem_filters[1].flag=='player-creation','building exclusions use the native entity prototype picker')
+change('fnw_e_entity_1','stone-furnace','signal')
+check(not storage.guard.excluded_entities['stone-furnace'] and storage.fnw_ui[1].dirty,'selecting building does not change active protection before saving')
+check(find(frame(),'fnw_e_caption_1').caption[1]=='entity-name.stone-furnace','selected building shows its localized name')
+click('fnw_apply')
+check(storage.guard.excluded_entities['stone-furnace'] and not storage.fnw_ui[1].dirty,'save applies exact building prototype exclusion')
+click('fnw_e_add');change('fnw_e_entity_2','stone-furnace','signal');click('fnw_apply')
+check(#Exclusions.list(storage.guard.excluded_entities)==1 and #storage.fnw_ui[1].excluded_entities==1,'duplicate building selections normalize to one saved exclusion')
+change('fnw_e_entity_1','transport-belt','signal')
+click('fnw_reload')
+check(storage.fnw_ui[1].excluded_entities[1]=='stone-furnace' and storage.guard.excluded_entities['stone-furnace'],'discard restores previous building exclusions')
+change('fnw_e_entity_1',nil,'signal');click('fnw_apply')
+check(#Exclusions.list(storage.guard.excluded_entities)==0,'clearing the native chooser removes exclusion when saved')
+click('fnw_e_add');change('fnw_e_entity_1','transport-belt','signal');click('fnw_apply')
+click('fnw_e_remove_1')
+check(storage.guard.excluded_entities['transport-belt'] and #storage.fnw_ui[1].excluded_entities==0,'removing a row remains a draft until saved')
+click('fnw_reload');check(#storage.fnw_ui[1].excluded_entities==1,'discard restores removed building row')
+click('fnw_e_remove_1');click('fnw_apply')
+check(not storage.guard.excluded_entities['transport-belt'],'saving row removal restores protection')
+click('fnw_e_add');change('fnw_e_entity_1','stone-furnace','signal')
+storage.guard.circuit_revision=storage.guard.circuit_revision+1;click('fnw_apply')
+check(not storage.guard.excluded_entities['stone-furnace'] and find(frame(),'fnw_feedback').caption[1]=='fnw-gui.conflict','stale building exclusion draft cannot overwrite another admin')
+click('fnw_reload');click('fnw_e_add')
+change('fnw_e_entity_1','not-a-prototype','signal')
+check(storage.fnw_ui[1].excluded_entities[1]=='' and find(frame(),'fnw_feedback').caption[1]=='fnw-gui.invalid-building','forged nonexistent prototype selection is rejected')
+click('fnw_reload')
+storage.guard.excluded_entities={['removed-mod-building']=true};storage.guard.circuit_revision=storage.guard.circuit_revision+1
+require('gui').refresh_all()
+check(find(frame(),'fnw_e_caption_1').caption[1]=='fnw-gui.missing-building' and not find(frame(),'fnw_e_entity_1').entity,'removed mod prototype keeps readable name without an invalid chooser icon')
+change('fnw_v_ignore-walls',true,'check');click('fnw_apply')
+check(storage.guard.excluded_entities['removed-mod-building'],'unrelated settings can save while absent mod exclusion is preserved')
+click('fnw_e_remove_1');click('fnw_apply')
+check(#Exclusions.list(storage.guard.excluded_entities)==0,'absent mod exclusions can be explicitly removed')
+local compiled=assert(Exclusions.compile({'transport-belt','transport-belt',''},{}))
+check(compiled['transport-belt'] and #Exclusions.list(compiled)==1,'lookup compilation ignores blank slots and deduplicates names')
+check(not Exclusions.compile({'unknown'},{}),'new unknown prototype cannot be compiled')
+check(Exclusions.compile({'unknown'},{unknown=true}).unknown,'previously saved unknown prototype is retained safely')
+local many_entities={};for i=1,Exclusions.limit+1 do many_entities[i]='transport-belt' end
+check(not Exclusions.compile(many_entities,{}),'building selection list is bounded to 128 entries')
+-- Building exclusions ignore exact names in every quality/surface, never whole classes.
+backing['fnw-enabled']={value=true};backing['fnw-destruction-pause']={value=true};backing['fnw-ignore-walls']={value=true}
+storage.guard.excluded_entities={['transport-belt']=true};storage.guard.excluded_areas={}
+storage.guard.alarm=nil;game.tick_paused=false;game.connected_players={}
+entity.name='transport-belt';entity.type='transport-belt';entity.quality={name='normal'};entity.position={x=100,y=100};entity.surface=surface
+handlers.on_entity_died{entity=entity,force=enemy}
+check(not storage.guard.alarm,'explicit building exception suppresses its destruction outside excluded areas')
+entity.quality={name='legendary'};handlers.on_entity_died{entity=entity,force=enemy}
+check(not storage.guard.alarm,'same building prototype is excluded in legendary quality')
+entity.surface={valid=true,name='gleba',planet={}};handlers.on_entity_died{entity=entity,force=enemy}
+check(not storage.guard.alarm,'building exception applies on another monitored planet')
+entity.surface={valid=true,name='platform',platform={}};handlers.on_entity_died{entity=entity}
+check(not storage.guard.alarm,'building exception also applies to platform losses')
+entity.surface=surface;entity.name='fast-transport-belt';handlers.on_entity_died{entity=entity,force=enemy}
+check(storage.guard.alarm,'another prototype of the same entity class remains protected')
+storage.guard.alarm=nil;game.tick_paused=false;storage.guard.excluded_entities={}
+entity.name='transport-belt';handlers.on_entity_died{entity=entity,force=enemy}
+check(storage.guard.alarm,'removing building exclusion restores destruction alarms')
+storage.guard.alarm=nil;game.tick_paused=false;entity.name='stone-wall';entity.type='wall'
+handlers.on_entity_died{entity=entity,force=enemy}
+check(not storage.guard.alarm,'existing wall exclusion switch remains independent of the new list')
+game.connected_players={player};click('fnw_reload')
 
 print('ALL '..checks..' GUI CHECKS PASSED')

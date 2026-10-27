@@ -198,3 +198,20 @@ Umbenennen erhält die Zuordnung; ein gelöschter Planet überträgt sie nicht a
 Ersatz. Eigene Schaltungsregeln (auch fehlende Verbindungen/Quellen), Forschung und
 Zeitlimit bleiben aktiv. Bereiche werden mit dem Spielstand gespeichert. Änderungen
 verwenden Speichern/Verwerfen und den vorhandenen Schutz vor veralteten Admin-Entwürfen.
+
+## Zusätzliche Gebäudeausnahmen (ab 0.3.10)
+
+Unter **Erweitert → Zusätzliche Gebäudeausnahmen → Gebäudeausnahme hinzufügen**
+eine Gebäudeart im Auswahlfenster wählen und **Speichern**. Weitere Zeilen können
+hinzugefügt und entfernt werden. Beispielsweise lässt sich ein normales Fließband
+ausnehmen, während schnelle Fließbänder weiterhin überwacht werden. Jede Auswahl
+gilt für genau diese Variante in allen Qualitätsstufen und auf allen überwachten
+Planeten/Plattformen. Mauern/Tore und Roboter behalten ihre eigenen Schalter.
+
+Die Liste nimmt ausschließlich Zerstörungsalarme aus. Bereichsausnahmen ergänzen
+sie; Forschung, Offline-Zeitlimit und eigene Schaltungsregeln einschließlich
+fehlender Quellen/Verbindungen bleiben aktiv. Maximal 128 Einträge, Duplikate werden
+beim Speichern zusammengefasst. Nach dem Entfernen anderer Mods bleiben deren
+Ausnahmen mit internem Namen sichtbar und können entfernt werden. Sie verhindern
+nicht das Speichern anderer Einstellungen. Spielstandspeicherung, Speichern/Verwerfen
+und Schutz vor veralteten Admin-Entwürfen gelten auch für diese Liste.

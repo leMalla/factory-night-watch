@@ -105,3 +105,13 @@ circuit rule, verify its live value, save it, then test and acknowledge a safety
   world/chart render objects. 22 installer/updater tests.
 - Actual zoom appearance and the return panel layout still require a Windows
   client smoke test. No DLC integration rerun in this environment.
+
+0.3.10 building exclusions (2026-10-28):
+- 186 Lua GUI/logic checks: native entity chooser, localized labels, drafts,
+  save/discard, duplicates, clearing/removing, multi-admin conflicts, removed-mod
+  prototypes, quality independence, other variants, planets/platforms and wall switch.
+- 60 Factorio 2.1.23 base-only integration checks: genuine excluded/non-excluded
+  building deaths, clearing the list, deduplication and save/reload. Circuit tests
+  monitor an excluded pole and still trigger normally, including missing-source fail-safe.
+- 22 installer/updater tests. Native Windows entity-picker appearance still needs
+  an in-game smoke test; DLC integration was not rerun.

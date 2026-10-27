@@ -64,6 +64,22 @@ position is stored separately, so **View alarm location** can open remote view
 even after the selected source entity has disappeared. Viewing the location does not
 release the pause or teleport your character.
 
+## Additional building exclusions
+
+In **Advanced → Additional building exclusions → Add building exclusion**, select
+an entity using the native picker, then **Save**. Add/remove rows for individual
+building prototypes, such as a transport belt or gun turret. Each entry applies
+to that exact variant in every quality on all monitored surfaces. Other variants
+of the same class remain protected. The existing wall/gate and robot switches
+continue to apply independently.
+
+The list affects structure-loss alarms only. Area exclusions can be used alongside
+it; research, offline limits and explicit circuit rules (including missing-source
+fail-safes) stay active. Up to 128 entries are supported; duplicates are merged
+on save. Missing prototypes from removed mods remain listed by internal name and
+can be removed; they do not block saving other settings. The list is stored in
+the save and uses the same Save/Discard and multi-admin conflict checks.
+
 ## Excluded areas
 
 In **Advanced → Excluded areas → Draw excluded area**, drag a rectangle on the
