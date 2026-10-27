@@ -1,8 +1,9 @@
 local G={}
 local C=require("circuits")
+local A=require("areas")
 local callbacks={}
 local ROOT="fnw_window"
-local LAYOUT=2
+local LAYOUT=3
 -- Suppress only synchronous close notifications caused by our own teardown.
 local internal_close={}
 local build
@@ -35,6 +36,7 @@ local function load(p)
   for _,k in ipairs(keys) do d.values[k]=opt(k);d.baseline[k]=opt(k) end
   local hours=opt("max-offline-hours")
   d.limit=hours>0;d.unit=hours%24==0 and 2 or 1;d.time=tostring(hours>0 and hours/(d.unit==2 and 24 or 1) or 7)
+  d.areas=A.copy((storage.guard or {}).excluded_areas)
   d.circuits=C.copy((storage.guard or {}).circuits)
   d.revision=(storage.guard or {}).circuit_revision or 0
   d.dirty=false;d.confirm=nil;d.feedback=nil
@@ -122,6 +124,8 @@ end
 function G.ensure(p)
   if not p or not p.valid then return end
   local legacy=p.gui.top.fnw_toggle;if legacy then legacy.destroy() end
+  local d=ui(p)
+  if not d.areas then d.areas=A.copy((storage.guard or {}).excluded_areas) end
   local old=window(p)
   if old and (old.tags.fnw_layout~=LAYOUT or not find(old,"fnw_tabs") or not find(old,"fnw_jump") or not find(old,"fnw_confirm_panel")) then destroy(p);state()[p.index]=nil end
   p.set_shortcut_available("fnw-open",true)
@@ -226,6 +230,20 @@ build=function(p)
   label(rules,tr("simulation-help"))
   local adv=pages[3]
   label(adv,tr("exceptions"));checkbox(adv,p,"ignore-walls");checkbox(adv,p,"ignore-robots")
+  label(adv,tr("areas"));label(adv,tr("areas-help"))
+  if #d.areas==0 then label(adv,tr("no-areas")) end
+  for i,a in ipairs(d.areas) do
+    local box=adv.add{type="frame",direction="vertical",style="inside_shallow_frame"}
+    box.add{type="checkbox",name="fnw_a_enabled_"..i,caption=tr("area",i),state=a.enabled,tags={fnw_edit=true}}
+    row(box,"name",{type="textfield",name="fnw_a_name_"..i,text=a.name})
+    local surface=a.surface and a.surface.valid and a.surface.name or a.surface_name
+    label(box,tr("area-bounds",surface,string.format("%.1f, %.1f",a.left,a.top),string.format("%.1f, %.1f",a.right,a.bottom)))
+    local actions=box.add{type="flow",direction="horizontal"}
+    local view=button(actions,"fnw_area_view_"..i,"view-area",false)
+    view.enabled=a.surface~=nil and a.surface.valid
+    button(actions,"fnw_area_remove_"..i,"remove",true)
+  end
+  button(adv,"fnw_area_add","add-area",true)
   checkbox(adv,p,"emergency-save")
   label(adv,tr("circuits"));label(adv,tr("circuits-help"))
   if #d.circuits==0 then label(adv,tr("no-circuits")) end
@@ -255,7 +273,7 @@ build=function(p)
 end
 function G.open(p)
   G.ensure(p)
-  if not ui(p).values or (not window(p) and not ui(p).selecting and not ui(p).dirty) then load(p) end
+  if not ui(p).values or (not window(p) and not ui(p).selecting and not ui(p).selecting_area and not ui(p).dirty) then load(p) end
   build(p)
 end
 local function jump_to_alarm(p)
@@ -294,6 +312,8 @@ local function apply(p)
     count=count+1
   end
   if count==0 then feedback(p,"empty-force");return end
+  local areas=A.copy(d.areas)
+  if not A.validate(areas) then feedback(p,"invalid-area");return end
   local rules=C.copy(d.circuits)
   for i,r in ipairs(rules) do
     r.threshold=numeric(r.threshold);r.delay=numeric(r.delay)
@@ -304,6 +324,7 @@ local function apply(p)
   if d.revision~=(s.circuit_revision or 0) then feedback(p,"conflict");return end
   -- All fields and rules have been validated before modifying server state.
   for _,k in ipairs(keys) do if values[k]~=opt(k) then settings.global["fnw-"..k]={value=values[k]} end end
+  s.excluded_areas=areas
   s.circuits=rules;s.circuit_revision=(s.circuit_revision or 0)+1
   load(p);d.feedback=tr("saved");build(p)
   -- A safety pause stops periodic refreshes, so publish the new revision to
@@ -327,6 +348,13 @@ local function changed(event)
     local t=numeric(d.time)
     if t then d.time=tostring(t*(d.unit==2 and 24 or 1)/(e.selected_index==2 and 24 or 1));find(window(p),"fnw_time").text=d.time end
     d.unit=e.selected_index
+  elseif name:match("^fnw_a_") then
+    local field,index=name:match("^fnw_a_([a-z]+)_(%d+)$");index=tonumber(index)
+    local area=index and d.areas[index]
+    if not area then return end
+    if field=="name" then area.name=e.text
+    elseif field=="enabled" then area.enabled=e.state
+    else return end
   else
     local field,index=name:match("^fnw_c_([a-z]+)_(%d+)$");index=tonumber(index)
     if not field or not d.circuits[index] then return end
@@ -363,8 +391,29 @@ script.on_event(defines.events.on_gui_click,function(event)
     if action=="test" and p.admin then callbacks.test() end
     build(p);return
   end
+  local area_index=tonumber(name:match("^fnw_area_view_(%d+)$"))
+  if area_index then
+    local a=d.areas[area_index]
+    if not a or not a.surface or not a.surface.valid then feedback(p,"jump-unavailable");return end
+    destroy(p)
+    local ok=pcall(function()
+      p.set_controller{type=defines.controllers.remote,surface=a.surface,position={x=(a.left+a.right)/2,y=(a.top+a.bottom)/2}}
+      p.zoom=math.min(0.75,32/math.max(a.right-a.left,a.bottom-a.top))
+      A.draw(a,p)
+    end)
+    if not ok then G.open(p);p.print(tr("jump-failed")) end
+    return
+  end
   if not p.admin then return end
-  if name=="fnw_apply" then apply(p)
+  if name=="fnw_area_add" then
+    if #d.areas>=A.limit then feedback(p,"area-limit");return end
+    if not p.clear_cursor() then feedback(p,"cursor-busy");return end
+    d.selecting=nil;d.selecting_area=true;destroy(p)
+    p.cursor_stack.set_stack{name="fnw-select-area",count=1}
+    p.print(tr("area-select-help"))
+  elseif name:match("^fnw_area_remove_(%d+)$") then
+    table.remove(d.areas,tonumber(name:match("(%d+)$")));d.dirty=true;d.feedback=nil;build(p)
+  elseif name=="fnw_apply" then apply(p)
   elseif name=="fnw_resume" then callbacks.resume();G.refresh_all()
   elseif name=="fnw_test" then d.confirm="test";build(p)
   elseif name=="fnw_add" then
@@ -376,7 +425,7 @@ script.on_event(defines.events.on_gui_click,function(event)
     index=tonumber(name:match("^fnw_select_(%d+)$"))
     if index then
       if not p.clear_cursor() then feedback(p,"cursor-busy");return end
-      d.selecting=index;destroy(p);p.cursor_stack.set_stack{name="fnw-select-network",count=1}
+      d.selecting_area=nil;d.selecting=index;destroy(p);p.cursor_stack.set_stack{name="fnw-select-network",count=1}
       p.print(tr("select-help"))
     end
   end
@@ -389,6 +438,17 @@ script.on_event(defines.events.on_player_removed,function(e)
   G.remove_player(e.player_index)
 end)
 local function selected(e)
+  if e.item=="fnw-select-area" then
+    local p=game.get_player(e.player_index)
+    if not p or not p.valid then return end
+    local d=ui(p)
+    if not p.admin or not d.selecting_area then return end
+    local a=A.create(e.surface,e.area)
+    if not a then p.print(tr("invalid-area"));return end
+    if #d.areas>=A.limit then p.print(tr("area-limit"));return end
+    d.areas[#d.areas+1]=a;d.dirty=true;d.feedback=nil;d.selecting_area=nil
+    p.clear_cursor();build(p);return
+  end
   if e.item~="fnw-select-network" then return end
   local p=game.get_player(e.player_index);local d=ui(p)
   if not p.admin or not d.selecting or not d.circuits[d.selecting] then return end
@@ -406,6 +466,9 @@ script.on_event(defines.events.on_player_selected_area,selected)
 script.on_event(defines.events.on_player_alt_selected_area,selected)
 script.on_event(defines.events.on_player_cursor_stack_changed,function(e)
   local p=game.get_player(e.player_index);local d=(storage.fnw_ui or {})[p.index]
-  if d and d.selecting and (not p.cursor_stack or not p.cursor_stack.valid_for_read or p.cursor_stack.name~="fnw-select-network") then d.selecting=nil;G.open(p) end
+  local expected=d and (d.selecting_area and "fnw-select-area" or d.selecting and "fnw-select-network")
+  if expected and (not p.cursor_stack or not p.cursor_stack.valid_for_read or p.cursor_stack.name~=expected) then
+    d.selecting=nil;d.selecting_area=nil;G.open(p)
+  end
 end)
 return G

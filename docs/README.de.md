@@ -125,7 +125,7 @@ wieder her; bei vollständigem Spielstand-Rollback den Rücksetzpunkt verwenden.
 Upgrades innerhalb der Mod-ID behalten Einstellungen, Offline-Uhr und Alarm. Die entfernten
 Hub-Einstellungen werden von Factorio verworfen. Ein vorhandener Alarm aus einer alten Version
 bleibt bis zur Bestätigung erhalten. Blueprint Sandboxes bleibt separat installiert.
-Diese Version ist noch nicht im Modportal und wird von dort nicht automatisch synchronisiert.
+Die Mod ist im [Factorio-Modportal](https://mods.factorio.com/mod/factory-night-watch) verfügbar. GitHub-Entwicklungsstände können neuer sein als die dort veröffentlichte Version.
 
 ### Befehle
 
@@ -177,3 +177,22 @@ See TESTS.txt. Engine behavior is tested with Factorio headless 2.1.23; GUI inte
 API-checked mocks. Native Windows GUI rendering and multiple simultaneous real clients still need
 an in-game check. No protection against OS failure or direct entity deletion by other mods.
 Existing autosaves and daily backups remain necessary.
+
+## Ausnahmebereiche (ab 0.3.8)
+
+**Erweitert → Ausnahmebereiche → Ausnahmebereich zeichnen**: Rechteck auf dem
+Planeten/der Plattform ziehen, optional benennen und **Speichern**. Auch leere
+Flächen sind auswählbar; später dort errichtete Gebäude sind ebenfalls abgedeckt.
+Bis zu 64 Bereiche lassen sich einzeln deaktivieren, entfernen und ansehen.
+„Bereich ansehen“ öffnet die Fernansicht und zeichnet die Grenzen für zehn
+Simulationssekunden ein. Während einer Pause bleibt die Markierung entsprechend
+länger sichtbar. Die Pause bleibt bestehen.
+
+Die Ausnahme gilt für **Zerstörungsalarme aller Gebäudetypen**, deren Mittelpunkt
+im Rechteck liegt. Obere/linke Grenze eingeschlossen, untere/rechte ausgeschlossen.
+Überlappende Rechtecke ergänzen sich. Jeder Bereich gehört genau zu seinem
+Planeten/seiner Plattform; gleichlautende Koordinaten anderswo sind nicht betroffen.
+Umbenennen erhält die Zuordnung; ein gelöschter Planet überträgt sie nicht auf einen
+Ersatz. Eigene Schaltungsregeln (auch fehlende Verbindungen/Quellen), Forschung und
+Zeitlimit bleiben aktiv. Bereiche werden mit dem Spielstand gespeichert. Änderungen
+verwenden Speichern/Verwerfen und den vorhandenen Schutz vor veralteten Admin-Entwürfen.

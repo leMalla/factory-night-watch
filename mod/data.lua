@@ -13,5 +13,14 @@ data:extend({
     alt_select={border_color={1,0.7,0}, mode={"any-entity"}, cursor_box_type="entity"},
     localised_name={"fnw-gui.select-network"},
     localised_description={"fnw-gui.select-help"}
+  } ,
+  {
+    type="selection-tool", name="fnw-select-area", stack_size=1,
+    icon="__base__/graphics/icons/radar.png", icon_size=64,
+    flags={"only-in-cursor", "not-stackable", "spawnable"}, hidden=true,
+    select={border_color={0.2,0.8,1}, mode={"nothing"}, cursor_box_type="entity"},
+    alt_select={border_color={0.2,0.8,1}, mode={"nothing"}, cursor_box_type="entity"},
+    localised_name={"fnw-gui.add-area"},
+    localised_description={"fnw-gui.area-select-help"}
   }
 })

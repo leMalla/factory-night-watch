@@ -84,3 +84,15 @@ pixel layout or every native event timing. Installer tests do not prove real
 Docker daemon behavior beyond the original deployment already exercised by the maintainer.
 First in-game check: open the bottom-right shortcut, review all three tabs, create a
 circuit rule, verify its live value, save it, then test and acknowledge a safety pause.
+
+0.3.8 area exclusions (2026-10-27):
+- 138 Lua GUI/presence/area checks, including 34 new area regressions.
+- 22 installer/updater tests unchanged and passing.
+- Factorio 2.1.23 base-only integration: 54 checks, including genuine destruction
+  within/outside exclusions, half-open borders, save/reload, surface renames and
+  deleted-surface replacement. Existing circuit tests run inside an exclusion
+  and still trigger normally. Native rectangle rendering parameters are tested.
+- New selection-tool prototype loads in the actual engine.
+- Prior Space Age tests cover 0.3.5; 0.3.8 was not rerun with DLC because this
+  headless distribution contains only base. Platform exclusion behavior is covered
+  in Lua tests. A live Windows test of drawing/viewing the region remains needed.

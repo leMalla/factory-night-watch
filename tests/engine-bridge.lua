@@ -35,3 +35,21 @@ commands.add_command('fnw-it-networks','Integration test only',function(cmd)
   end
   rcon.print(helpers.table_to_json({options=out,error=err}))
 end)
+commands.add_command('fnw-it-areas','Integration test only',function(cmd)
+  local args=helpers.json_to_table(cmd.parameter)
+  if args.clear then state().excluded_areas={};return end
+  if args.draw then local object=Areas.draw(state().excluded_areas[1]);rcon.print(tostring(object.valid));object.destroy();return end
+  if args.probe then rcon.print(tostring(Areas.contains(state().excluded_areas,{surface=game.surfaces[args.surface],position={x=args.x,y=args.y}})));return end
+  if args.status then
+    local out={}
+    for _,a in ipairs(state().excluded_areas or {}) do
+      out[#out+1]={name=a.name,enabled=a.enabled,surface=a.surface and a.surface.valid and a.surface.name or a.surface_name,left=a.left,right=a.right,top=a.top,bottom=a.bottom}
+    end
+    rcon.print(helpers.table_to_json(out));return
+  end
+  local surface=game.surfaces[args.surface or 'nauvis']
+  local a=assert(Areas.create(surface,{left_top={x=args.left,y=args.top},right_bottom={x=args.right,y=args.bottom}}))
+  a.name=args.name or 'Engine exclusion';a.enabled=args.enabled~=false
+  state().excluded_areas=state().excluded_areas or {}
+  table.insert(state().excluded_areas,a)
+end)

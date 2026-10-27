@@ -74,3 +74,12 @@ No. AI-assisted coding tools were used during development. The installed mod
 runs ordinary Factorio scripts and does not connect to an AI service or require
 an AI account. The optional external server updater connects to GitHub to download
 code; it is separate from the in-game mod.
+
+## Can I ignore destruction in a particular area?
+
+Yes. In Advanced, choose Draw excluded area, drag a rectangle, name it and Save.
+The rectangle applies to every building type by centre position on that specific
+planet/platform, including future buildings. Top/left edges count; bottom/right
+edges do not. Areas can be disabled, removed or viewed. Only structure-loss alarms
+are excluded. Explicit circuit rules (including missing connections/sources),
+research and offline-time limits remain active.

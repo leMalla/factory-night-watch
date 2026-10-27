@@ -64,6 +64,24 @@ position is stored separately, so **View alarm location** can open remote view
 even after the selected source entity has disappeared. Viewing the location does not
 release the pause or teleport your character.
 
+## Excluded areas
+
+In **Advanced → Excluded areas → Draw excluded area**, drag a rectangle on the
+planet or platform, give it a name and **Save**. Empty land can be selected too;
+new buildings placed there are automatically covered. Up to 64 rectangles can be
+enabled/disabled, removed or inspected using **View area**. Viewing opens remote
+view and highlights the rectangle for 10 simulation seconds (while paused, the
+highlight remains until simulation resumes). The pause is not released.
+
+Exclusions suppress **structure-loss alarms only**, for every building type whose
+centre lies inside the rectangle. Top/left edges are included; bottom/right edges
+are excluded. Overlapping rectangles form a union. Each area belongs to its exact
+surface: other planets/platforms at the same coordinates are unaffected. Renaming
+a surface keeps its areas; deleting it does not transfer them to a replacement.
+Explicit circuit conditions (including missing-source fail-safes), research and
+time-limit alarms remain active. Changes use Save/Discard and admin conflict
+protection, and are stored in the save.
+
 ## Pause behavior
 
 A safety alarm pauses the **entire simulation**, including other planets and

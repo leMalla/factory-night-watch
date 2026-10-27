@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.8
+Date: 2026-10-27
+  Features:
+    - Named rectangular exclusions for structure-loss alarms on individual planets/platforms.
+    - Draw empty or built-up areas, enable/disable, view and remove them in Advanced.
+  Notes:
+    - Exclusions use building centres; circuit/research/time-limit rules remain active.
+    - Area changes use Save/Discard and the existing multi-admin conflict protection.
+---------------------------------------------------------------------------------------------------
 Version: 0.3.7
 Date: 2026-10-24
   Graphics:

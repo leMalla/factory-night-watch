@@ -366,4 +366,108 @@ for i,option in ipairs(r.choices) do if option.connector==1 then input_choice=i+
 change('fnw_c_connection_'..index,input_choice,'select')
 change('fnw_c_connection_'..index,output_choice,'select')
 check(r.connector==1 and find(frame(),'fnw_c_connection_'..index).selected_index==input_choice,'choosing a disconnected option restores the previous explicit selection instead of displaying a different binding')
+-- Area GUI transactions, boundary rules and alarm integration.
+local Areas=require('areas')
+storage.guard.circuits={};storage.guard.circuit_revision=(storage.guard.circuit_revision or 0)+1
+click('fnw_reload')
+player.admin=false;handlers.on_player_demoted()
+click('fnw_area_add')
+check(frame() and not storage.fnw_ui[1].selecting_area,'non-admin cannot start area selection')
+player.admin=true;handlers.on_player_promoted()
+local before_areas=#(storage.guard.excluded_areas or {})
+click('fnw_area_add')
+check(not frame() and storage.fnw_ui[1].selecting_area,'area tool closes window and preserves draft')
+player.cursor_stack.valid_for_read=false
+handlers.on_player_cursor_stack_changed{player_index=1}
+check(frame() and not storage.fnw_ui[1].selecting_area and not storage.fnw_ui[1].dirty,'cancelled area selection restores clean draft')
+local surface={valid=true,name='nauvis',index=1,planet={}}
+local function select_area(box,alternate)
+  handlers[alternate and 'on_player_alt_selected_area' or 'on_player_selected_area']{player_index=1,item='fnw-select-area',surface=surface,area=box,entities={}}
+end
+click('fnw_area_add')
+select_area({left_top={x=1,y=1},right_bottom={x=1,y=5}})
+check(not frame() and storage.fnw_ui[1].selecting_area,'zero-width area rejected without abandoning tool')
+select_area({left_top={x=10,y=10},right_bottom={x=-10,y=-10}},true)
+check(frame() and #storage.fnw_ui[1].areas==1 and storage.fnw_ui[1].areas[1].left==-10,'empty reversed selection normalizes bounds and returns to GUI')
+check(#(storage.guard.excluded_areas or {})==before_areas,'unsaved area does not change alarm protection')
+change('fnw_a_name_1','Test perimeter')
+click('fnw_apply')
+check(storage.guard.excluded_areas[1].name=='Test perimeter' and not storage.fnw_ui[1].dirty,'named area saves through normal apply transaction')
+change('fnw_a_name_1','Unsaved rename')
+check(storage.guard.excluded_areas[1].name=='Test perimeter','area draft copy does not mutate saved exclusion')
+click('fnw_reload')
+check(find(frame(),'fnw_a_name_1').text=='Test perimeter','discard restores saved area name')
+local a=storage.guard.excluded_areas[1]
+local function contained(x,y,s) return Areas.contains({a},{surface=s or surface,position={x=x,y=y}}) end
+check(contained(0,0) and contained(-10,-10),'area includes interior and top-left boundary')
+check(not contained(10,0) and not contained(0,10),'area excludes right and bottom boundary')
+check(not contained(-10.01,0) and not contained(0,-10.01),'positions just outside rectangle stay protected')
+check(not contained(0,0,{valid=true,name='gleba',index=2}),'same coordinates on another planet do not match')
+surface.name='renamed-nauvis'
+check(contained(0,0),'surface rename preserves exclusion identity')
+a.enabled=false;check(not contained(0,0),'disabled exclusion never suppresses alarms');a.enabled=true
+surface.valid=false
+check(not contained(0,0) and not contained(0,0,{valid=true,name='renamed-nauvis',index=1}),'deleted surface cannot transfer exclusion to replacement surface')
+surface.valid=true
+local original_controller=player.set_controller;local viewed
+local outline
+rendering={draw_rectangle=function(spec) outline=spec;return {valid=true} end}
+player.set_controller=function(spec) viewed=spec end
+player.admin=false;handlers.on_player_demoted();click('fnw_area_view_1')
+check(viewed and viewed.surface==surface and viewed.position.x==0,'read-only player can inspect excluded area in remote view')
+check(outline and outline.players[1]==player and outline.time_to_live==600 and outline.left_top[1]==-10,'area view highlights exact bounds for the viewing player only')
+player.set_controller=original_controller;player.admin=true
+registered['fnw-gui']{player_index=1}
+change('fnw_a_enabled_1',false,'check');click('fnw_apply')
+check(not storage.guard.excluded_areas[1].enabled,'area can be disabled and saved')
+change('fnw_a_enabled_1',true,'check')
+storage.guard.circuit_revision=storage.guard.circuit_revision+1
+click('fnw_apply')
+check(not storage.guard.excluded_areas[1].enabled and find(frame(),'fnw_feedback').caption[1]=='fnw-gui.conflict','stale area draft cannot overwrite another admin configuration')
+click('fnw_reload');click('fnw_area_remove_1')
+check(#storage.guard.excluded_areas==1 and #storage.fnw_ui[1].areas==0,'area removal remains a draft until saved')
+click('fnw_reload')
+check(#storage.fnw_ui[1].areas==1,'discard undoes area removal')
+click('fnw_area_remove_1');click('fnw_apply')
+check(#storage.guard.excluded_areas==0,'saved area removal restores protection')
+-- Forged selection events must not create exclusions without admin + pending tool.
+select_area({left_top={x=0,y=0},right_bottom={x=4,y=4}})
+check(#storage.fnw_ui[1].areas==0,'unsolicited area selection event ignored')
+click('fnw_area_add');player.admin=false
+select_area({left_top={x=0,y=0},right_bottom={x=4,y=4}})
+check(#storage.fnw_ui[1].areas==0,'demotion during selection prevents creating exclusion')
+player.admin=true;player.cursor_stack.valid_for_read=false
+handlers.on_player_cursor_stack_changed{player_index=1}
+-- Structure-loss handler skips excluded building centres only.
+backing['fnw-enabled']={value=true};backing['fnw-destruction-pause']={value=true}
+game.connected_players={};storage.guard.alarm=nil;game.tick_paused=false
+local force=game.forces.player
+force.get_friend=function() return false end;force.get_cease_fire=function() return false end
+local enemy={valid=true,index=2}
+local entity={valid=true,name='stone-furnace',type='furnace',surface=surface,force=force,position={x=0,y=0},has_flag=function() return true end}
+storage.guard.excluded_areas={Areas.create(surface,{left_top={x=-10,y=-10},right_bottom={x=10,y=10}})}
+handlers.on_entity_died{entity=entity,force=enemy}
+check(not storage.guard.alarm,'real destruction handler ignores excluded furnace')
+entity.type='assembling-machine';entity.name='assembling-machine-3'
+handlers.on_entity_died{entity=entity,force=enemy}
+check(not storage.guard.alarm,'exclusion is independent of building type')
+entity.position={x=10,y=0};handlers.on_entity_died{entity=entity,force=enemy}
+check(storage.guard.alarm and game.tick_paused,'building outside exclusion still triggers protection pause')
+storage.guard.alarm=nil;game.tick_paused=false;entity.position={x=0,y=0};storage.guard.excluded_areas[1].enabled=false
+handlers.on_entity_died{entity=entity,force=enemy}
+check(storage.guard.alarm,'disabled area restores destruction alarm')
+storage.guard.alarm=nil;game.tick_paused=false;storage.guard.excluded_areas[1].enabled=true
+surface.platform={};surface.planet=nil
+handlers.on_entity_died{entity=entity}
+check(not storage.guard.alarm,'platform losses inside exclusion do not pause')
+entity.position={x=12,y=0};handlers.on_entity_died{entity=entity}
+check(storage.guard.alarm,'platform losses outside exclusion still pause')
+local adjacent=Areas.create(surface,{left_top={x=10,y=-10},right_bottom={x=20,y=10}})
+check(Areas.contains({storage.guard.excluded_areas[1],adjacent},entity),'overlapping and adjacent exclusions use union of rectangles')
+check(not Areas.validate({{name='',enabled=true,left=0,top=0,right=0,bottom=5}}),'invalid area geometry is rejected before save')
+local many={};for i=1,Areas.limit+1 do many[i]=adjacent end
+check(not Areas.validate(many),'area list has bounded size')
+game.connected_players={player};surface.platform=nil;surface.planet={};storage.guard.excluded_areas={}
+storage.guard.alarm=nil;game.tick_paused=false
+
 print('ALL '..checks..' GUI CHECKS PASSED')
