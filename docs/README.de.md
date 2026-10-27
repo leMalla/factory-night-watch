@@ -184,9 +184,11 @@ Existing autosaves and daily backups remain necessary.
 Planeten/der Plattform ziehen, optional benennen und **Speichern**. Auch leere
 Flächen sind auswählbar; später dort errichtete Gebäude sind ebenfalls abgedeckt.
 Bis zu 64 Bereiche lassen sich einzeln deaktivieren, entfernen und ansehen.
-„Bereich ansehen“ öffnet die Fernansicht und zeichnet die Grenzen für zehn
-Simulationssekunden ein. Während einer Pause bleibt die Markierung entsprechend
-länger sichtbar. Die Pause bleibt bestehen.
+„Bereich ansehen“ öffnet die Fernansicht und zeigt die Grenzen dauerhaft in Welt-
+und Kartenansicht. Ein kleines Fenster zeigt offene Änderungen und bietet
+„Zurück zu Ausnahmebereichen“ sowie „Speichern und zurück“ für alle offenen
+Einstellungen. Ansehen allein speichert nichts. Die Markierung endet bei der Rückkehr,
+nicht beim Zoomen. Die Pause bleibt bestehen.
 
 Die Ausnahme gilt für **Zerstörungsalarme aller Gebäudetypen**, deren Mittelpunkt
 im Rechteck liegt. Obere/linke Grenze eingeschlossen, untere/rechte ausgeschlossen.

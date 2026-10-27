@@ -48,8 +48,10 @@ In **Advanced → Excluded areas → Draw excluded area**, drag a rectangle on t
 planet or platform, give it a name and **Save**. Empty land can be selected too;
 new buildings placed there are automatically covered. Up to 64 rectangles can be
 enabled/disabled, removed or inspected using **View area**. Viewing opens remote
-view and highlights the rectangle for 10 simulation seconds (while paused, the
-highlight remains until simulation resumes). The pause is not released.
+view with a persistent outline in world and map views. A small panel shows whether
+there are unsaved changes and offers **Back to excluded areas** or **Save and return**
+for all pending settings. Viewing alone never saves. Returning ends the preview
+and removes both outlines; zooming does not. The pause is not released.
 
 Exclusions suppress **structure-loss alarms only**, for every building type whose
 centre lies inside the rectangle. Top/left edges are included; bottom/right edges

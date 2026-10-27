@@ -83,3 +83,11 @@ planet/platform, including future buildings. Top/left edges count; bottom/right
 edges do not. Areas can be disabled, removed or viewed. Only structure-loss alarms
 are excluded. Explicit circuit rules (including missing connections/sources),
 research and offline-time limits remain active.
+
+## Why does the area preview stay visible while zooming?
+
+The preview draws one outline in the world and another in the zoomed-out map.
+Both stay until you use Back to excluded areas, reopen the main GUI or disconnect.
+The return panel shows unsaved changes; Save and return applies all pending
+settings using normal validation and admin conflict checks. Viewing alone does
+not save, and returning does not resume a safety pause.

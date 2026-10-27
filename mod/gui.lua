@@ -3,6 +3,7 @@ local C=require("circuits")
 local A=require("areas")
 local callbacks={}
 local ROOT="fnw_window"
+local PREVIEW="fnw_area_preview"
 local LAYOUT=3
 -- Suppress only synchronous close notifications caused by our own teardown.
 local internal_close={}
@@ -30,6 +31,34 @@ local function settings_changed(d)
     if d.baseline[key]~=opt(key) then return true end
   end
   return false
+end
+local function stop_preview(p)
+  local d=ui(p)
+  if d.preview then A.clear(d.preview.objects);d.preview=nil end
+  local panel=p.gui.screen[PREVIEW]
+  if panel then panel.destroy() end
+end
+local function preview_panel(p)
+  local d=ui(p)
+  if not d.preview then return end
+  local panel=p.gui.screen[PREVIEW]
+  if not panel then
+    panel=p.gui.screen.add{type="frame",name=PREVIEW,direction="vertical"}
+    panel.style.width=400;panel.location={x=20,y=80}
+    local title=panel.add{type="label",caption=tr("area-preview"),style="frame_title"}
+    title.style.single_line=false;title.style.width=360
+    local status=panel.add{type="label",name="fnw_preview_status",caption=""}
+    status.style.single_line=false;status.style.width=360
+    local back=panel.add{type="button",name="fnw_preview_return",caption=tr("preview-return")}
+    back.style.width=360
+    local save=panel.add{type="button",name="fnw_preview_save",caption=tr("preview-save")}
+    save.style.width=360;save.tooltip=tr("preview-save-help")
+  end
+  local stale=settings_changed(d) or d.revision~=((storage.guard or {}).circuit_revision or 0)
+  panel.fnw_preview_status.caption=tr(stale and "preview-stale" or d.dirty and "preview-unsaved" or "preview-saved")
+  panel.fnw_preview_save.visible=d.dirty
+  panel.fnw_preview_save.enabled=p.admin and d.dirty
+  -- Do not assign player.opened: this panel must not intercept map interaction.
 end
 local function load(p)
   local d=ui(p);d.values={};d.baseline={}
@@ -117,7 +146,12 @@ local function circuit_editor(parent,p,i,r)
   local status=label(box,"");status.name="fnw_c_status_"..i
 end
 function G.configure(c) callbacks=c end
+function G.close_preview(p)
+  if p and p.valid then stop_preview(p) end
+end
 function G.remove_player(index)
+  local d=storage.fnw_ui and storage.fnw_ui[index]
+  if d and d.preview then A.clear(d.preview.objects) end
   if storage.fnw_ui then storage.fnw_ui[index]=nil end
   internal_close[index]=nil
 end
@@ -131,7 +165,7 @@ function G.ensure(p)
   p.set_shortcut_available("fnw-open",true)
 end
 function G.refresh(p)
-  local f=window(p);if not f then return end
+  local f=window(p);if not f then preview_panel(p);return end
   local s=storage.guard or {};local d=ui(p)
   -- Clean forms track server changes. Dirty drafts retain their inputs and are
   -- checked against the captured baseline before they may change server state.
@@ -272,6 +306,7 @@ build=function(p)
   G.refresh(p)
 end
 function G.open(p)
+  stop_preview(p)
   G.ensure(p)
   if not ui(p).values or (not window(p) and not ui(p).selecting and not ui(p).selecting_area and not ui(p).dirty) then load(p) end
   build(p)
@@ -378,8 +413,17 @@ script.on_event(defines.events.on_lua_shortcut,function(e)
 end)
 script.on_event(defines.events.on_gui_click,function(event)
   if not owned(event.element) then return end
-  local p=game.get_player(event.player_index);if not p or not window(p) then return end
+  local p=game.get_player(event.player_index);if not p then return end
   local d=ui(p);local name=event.element.name
+  if name=="fnw_preview_return" or name=="fnw_preview_save" then
+    if not d.preview then return end
+    local save=name=="fnw_preview_save"
+    if save and not p.admin then return end
+    d.tab=3;G.open(p)
+    if save then apply(p) end
+    return
+  end
+  if not window(p) then return end
   if name=="fnw_jump" then jump_to_alarm(p);return
   elseif name=="fnw_close" then request_close(p);return
   elseif name=="fnw_cancel" then d.confirm=nil;build(p);return
@@ -395,11 +439,12 @@ script.on_event(defines.events.on_gui_click,function(event)
   if area_index then
     local a=d.areas[area_index]
     if not a or not a.surface or not a.surface.valid then feedback(p,"jump-unavailable");return end
-    destroy(p)
+    stop_preview(p);destroy(p)
     local ok=pcall(function()
       p.set_controller{type=defines.controllers.remote,surface=a.surface,position={x=(a.left+a.right)/2,y=(a.top+a.bottom)/2}}
-      p.zoom=math.min(0.75,32/math.max(a.right-a.left,a.bottom-a.top))
-      A.draw(a,p)
+      p.zoom=math.max(0.03125,math.min(0.75,32/math.max(a.right-a.left,a.bottom-a.top)))
+      d.preview={objects=A.draw(a,p)}
+      preview_panel(p)
     end)
     if not ok then G.open(p);p.print(tr("jump-failed")) end
     return

@@ -96,3 +96,12 @@ circuit rule, verify its live value, save it, then test and acknowledge a safety
 - Prior Space Age tests cover 0.3.5; 0.3.8 was not rerun with DLC because this
   headless distribution contains only base. Platform exclusion behavior is covered
   in Lua tests. A live Windows test of drawing/viewing the region remains needed.
+
+0.3.9 preview usability (2026-10-27):
+- 159 Lua GUI/logic checks, including non-modal return/save panel, pending drafts,
+  world/chart render modes with unlimited lifetime, permission changes, stale
+  drafts, disconnect/player-removal cleanup and partial renderer failure cleanup.
+- 54 Factorio 2.1.23 base-only integration checks; verifies both persistent native
+  world/chart render objects. 22 installer/updater tests.
+- Actual zoom appearance and the return panel layout still require a Windows
+  client smoke test. No DLC integration rerun in this environment.

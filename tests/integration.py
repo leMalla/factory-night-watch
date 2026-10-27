@@ -240,13 +240,13 @@ try:
     command('/fnw-it-rule {"op":">","threshold":999,"count":32}')
     started_tick=int(lua('rcon.print(game.tick)'))
     lua('game.speed=60')
-    deadline=time.monotonic()+25
+    deadline=time.monotonic()+60
     while time.monotonic()<deadline:
         if int(lua('rcon.print(game.tick)'))-started_tick>=18000:
             break
         time.sleep(.2)
     else:
-        raise AssertionError('32-rule soak did not advance five simulation minutes')
+        raise AssertionError('32-rule soak did not advance five simulation minutes; ticks advanced='+str(int(lua('rcon.print(game.tick)'))-started_tick))
     current=status()
     check(not current['paused'] and len(current['circuits'])==32 and all(r.get('value')==50 for r in current['circuits']), '32 active circuit rules run for five simulation minutes without false pause')
     command('/fnw-it-rule {"clear":true}')

@@ -147,7 +147,7 @@ script.on_event(defines.events.on_player_joined_game, function(event)
   Gui.refresh_all()
   if state().alarm then show_alarm(game.get_player(event.player_index)) end
 end)
-script.on_event(defines.events.on_player_left_game, function() sync_presence(); Gui.refresh_all() end)
+script.on_event(defines.events.on_player_left_game, function(event) Gui.close_preview(game.get_player(event.player_index)); sync_presence(); Gui.refresh_all() end)
 script.on_event(defines.events.on_player_created, function(event) Gui.ensure(game.get_player(event.player_index)) end)
 script.on_event(defines.events.on_player_promoted, function() Gui.refresh_all() end)
 script.on_event(defines.events.on_player_demoted, function() Gui.refresh_all() end)

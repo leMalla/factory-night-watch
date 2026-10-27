@@ -1,6 +1,6 @@
 Title: Factory Night Watch
 Internal name: factory-night-watch
-Version: 0.3.8
+Version: 0.3.9
 Category: Utilities
 Tag: Circuit network
 License: MIT

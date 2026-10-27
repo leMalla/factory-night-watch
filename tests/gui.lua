@@ -133,7 +133,7 @@ click('fnw_confirm');check(storage.guard.alarm and saves==1,"confirmed test paus
 player.admin=false;click('fnw_resume');check(storage.guard.alarm~=nil,"non-admin cannot acknowledge")
 player.admin=true;click('fnw_resume');check(not storage.guard.alarm,"admin acknowledges pause")
 change('fnw_mode',2,'select');click('fnw_apply');check(not backing['fnw-enabled'].value and not game.tick_paused,"pause-when-empty mode does not stop online players")
-game.connected_players={};handlers.on_player_left_game();check(game.tick_paused,"pause-when-empty stops immediately")
+game.connected_players={};handlers.on_player_left_game{player_index=1};check(game.tick_paused,"pause-when-empty stops immediately")
 game.connected_players={player};handlers.on_player_joined_game{player_index=1};check(not game.tick_paused,"normal empty-server pause resumes on join")
 click('fnw_test');click('fnw_confirm');handlers.on_player_joined_game{player_index=1};check(game.tick_paused,"join does not release safety latch")
 click('fnw_resume');click('fnw_remove_1');click('fnw_apply');check(#storage.guard.circuits==0,"circuit removal saved")
@@ -154,7 +154,7 @@ pole.valid=true
 change('fnw_c_enabled_1',true,'check');change('fnw_c_threshold_1','-5');change('fnw_c_delay_1','2');change('fnw_mode',1,'select');click('fnw_apply')
 for i=1,5 do game.tick=game.tick+60;handlers.periodic() end
 check(not game.tick_paused and not storage.guard.circuits[1].since,"online matching signal does not pause or collect delay")
-game.connected_players={};handlers.on_player_left_game();game.tick=game.tick+60;handlers.periodic()
+game.connected_players={};handlers.on_player_left_game{player_index=1};game.tick=game.tick+60;handlers.periodic()
 check(storage.guard.circuits[1].since~=nil and not game.tick_paused,"offline signal starts fresh delay")
 game.connected_players={player};handlers.on_player_joined_game{player_index=1}
 check(storage.guard.circuits[1].since==nil,"player join resets circuit wait")
@@ -287,7 +287,7 @@ check(not storage.fnw_ui[1].dirty and find(frame(),'fnw_time').text~='13','reuse
 -- An independently existing manual pause is not owned by empty-server mode.
 click('fnw_reload');change('fnw_mode',2,'select');click('fnw_apply')
 game.tick_paused=true;storage.guard.alarm=nil;storage.guard.empty_pause=nil
-game.connected_players={};handlers.on_player_left_game()
+game.connected_players={};handlers.on_player_left_game{player_index=1}
 check(game.tick_paused and not storage.guard.empty_pause,'empty-server mode does not claim an existing manual pause')
 game.connected_players={player};handlers.on_player_joined_game{player_index=1}
 check(game.tick_paused,'player joining does not release an independently existing manual pause')
@@ -411,11 +411,18 @@ check(not contained(0,0) and not contained(0,0,{valid=true,name='renamed-nauvis'
 surface.valid=true
 local original_controller=player.set_controller;local viewed
 local outline
-rendering={draw_rectangle=function(spec) outline=spec;return {valid=true} end}
+local rendered={}
+rendering={draw_rectangle=function(spec)
+  outline=spec
+  local object={valid=true,parameters=spec}
+  object.destroy=function() object.valid=false end
+  rendered[#rendered+1]=object
+  return object
+end}
 player.set_controller=function(spec) viewed=spec end
 player.admin=false;handlers.on_player_demoted();click('fnw_area_view_1')
 check(viewed and viewed.surface==surface and viewed.position.x==0,'read-only player can inspect excluded area in remote view')
-check(outline and outline.players[1]==player and outline.time_to_live==600 and outline.left_top[1]==-10,'area view highlights exact bounds for the viewing player only')
+check(outline and outline.players[1]==player and outline.time_to_live==0 and outline.left_top[1]==-10,'area view highlights exact bounds for the viewing player only')
 player.set_controller=original_controller;player.admin=true
 registered['fnw-gui']{player_index=1}
 change('fnw_a_enabled_1',false,'check');click('fnw_apply')
@@ -469,5 +476,72 @@ local many={};for i=1,Areas.limit+1 do many[i]=adjacent end
 check(not Areas.validate(many),'area list has bounded size')
 game.connected_players={player};surface.platform=nil;surface.planet={};storage.guard.excluded_areas={}
 storage.guard.alarm=nil;game.tick_paused=false
+
+-- Non-modal area preview: explicit save/return, persistent world + chart outlines.
+player.set_controller=function(spec) viewed=spec end
+click('fnw_reload');click('fnw_area_add')
+select_area({left_top={x=-10,y=-10},right_bottom={x=10,y=10}})
+change('fnw_a_name_1','Unsaved preview area')
+local preview_render_start=#rendered
+local function preview_click(name)
+  local panel=assert(player.gui.screen.fnw_area_preview,'preview panel missing')
+  handlers.on_gui_click{player_index=1,element=assert(find(panel,name),name)}
+end
+local preview_pause=game.tick_paused
+click('fnw_area_view_1')
+local panel=player.gui.screen.fnw_area_preview
+check(not frame() and panel and player.opened~=panel,'preview panel is visible without intercepting map input')
+check(panel.fnw_preview_status.caption[1]=='fnw-gui.preview-unsaved' and panel.fnw_preview_save.visible,'unsaved preview explicitly says viewing does not save and offers save action')
+check(#rendered==preview_render_start+2 and rendered[#rendered-1].parameters.render_mode=='game' and rendered[#rendered].parameters.render_mode=='chart','preview draws separate outlines for close world and zoomed-out map views')
+check(rendered[#rendered-1].parameters.time_to_live==0 and rendered[#rendered].parameters.time_to_live==0,'both preview outlines have no time-based expiry')
+check(#storage.guard.excluded_areas==0,'viewing an unsaved rectangle leaves active exclusions unchanged')
+local preview_objects={rendered[#rendered-1],rendered[#rendered]}
+game.tick=game.tick+3600;player.zoom=.05;handlers.periodic();player.zoom=.75;handlers.periodic()
+check(preview_objects[1].valid and preview_objects[2].valid and player.gui.screen.fnw_area_preview,'preview remains active across zoom changes and periodic refreshes')
+preview_click('fnw_preview_return')
+check(frame() and storage.fnw_ui[1].tab==3 and storage.fnw_ui[1].dirty and find(frame(),'fnw_a_name_1').text=='Unsaved preview area','return button reopens Advanced with the same unsaved draft')
+check(not player.gui.screen.fnw_area_preview and not preview_objects[1].valid and not preview_objects[2].valid,'return removes panel and both persistent outlines')
+check(#storage.guard.excluded_areas==0 and game.tick_paused==preview_pause,'plain return neither saves nor changes pause state')
+click('fnw_area_view_1');preview_click('fnw_preview_save')
+check(frame() and #storage.guard.excluded_areas==1 and storage.guard.excluded_areas[1].name=='Unsaved preview area' and not storage.fnw_ui[1].dirty,'save and return validates and saves the draft, then opens Advanced')
+click('fnw_area_view_1')
+panel=player.gui.screen.fnw_area_preview
+check(panel.fnw_preview_status.caption[1]=='fnw-gui.preview-saved' and not panel.fnw_preview_save.visible,'saved previews show saved status without an unnecessary save button')
+registered['fnw-gui']{player_index=1}
+check(frame() and not player.gui.screen.fnw_area_preview and not rendered[#rendered].valid,'opening normal GUI through command also cleans preview objects')
+change('fnw_a_name_1','Changed in preview')
+click('fnw_area_view_1');player.admin=false;handlers.on_player_demoted()
+check(not player.gui.screen.fnw_area_preview.fnw_preview_save.enabled,'demotion disables preview save even while main GUI is hidden')
+preview_click('fnw_preview_save')
+check(not frame() and player.gui.screen.fnw_area_preview and storage.guard.excluded_areas[1].name=='Unsaved preview area','forged non-admin preview save does not write settings')
+preview_click('fnw_preview_return');player.admin=true;handlers.on_player_promoted()
+check(storage.fnw_ui[1].dirty,'read-only return keeps draft intact for later admin review')
+click('fnw_area_view_1');storage.guard.circuit_revision=storage.guard.circuit_revision+1
+require('gui').refresh_all()
+check(player.gui.screen.fnw_area_preview.fnw_preview_status.caption[1]=='fnw-gui.preview-stale','preview warns when another admin changes the active configuration')
+preview_click('fnw_preview_save')
+check(frame() and find(frame(),'fnw_feedback').caption[1]=='fnw-gui.conflict' and storage.guard.excluded_areas[1].name=='Unsaved preview area','save from stale preview shows conflict in main GUI without overwriting server')
+click('fnw_reload');change('fnw_a_name_1','Another unsaved edit');click('fnw_area_view_1')
+local disconnect_objects=storage.fnw_ui[1].preview.objects
+game.connected_players={};handlers.on_player_left_game{player_index=1}
+check(not player.gui.screen.fnw_area_preview and not disconnect_objects[1].valid and not disconnect_objects[2].valid,'disconnect removes preview objects and return panel')
+game.connected_players={player};handlers.on_player_joined_game{player_index=1}
+registered['fnw-gui']{player_index=1}
+check(storage.fnw_ui[1].dirty and find(frame(),'fnw_a_name_1').text=='Another unsaved edit','disconnect/rejoin preserves draft while cleaning its preview')
+-- Failure after the first native rectangle must not leave an immortal orphan.
+local original_draw=rendering.draw_rectangle
+local render_calls=0
+rendering.draw_rectangle=function(spec)
+  render_calls=render_calls+1
+  if render_calls==2 then error('simulated chart rendering failure') end
+  return original_draw(spec)
+end
+click('fnw_area_view_1')
+check(frame() and not player.gui.screen.fnw_area_preview and not rendered[#rendered].valid and storage.fnw_ui[1].dirty,'partial rendering failure cleans first outline and restores unsaved draft')
+rendering.draw_rectangle=original_draw
+click('fnw_area_view_1')
+local removal_objects=storage.fnw_ui[1].preview.objects
+handlers.on_player_removed{player_index=1}
+check(not removal_objects[1].valid and not removal_objects[2].valid and storage.fnw_ui[1]==nil,'removed player cannot leave immortal preview render objects')
 
 print('ALL '..checks..' GUI CHECKS PASSED')
