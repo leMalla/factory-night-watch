@@ -1,4 +1,4 @@
-# Mod Portal listing draft
+# Mod Portal listing — 0.3.10
 
 Title: **Factory Night Watch**
 
@@ -10,9 +10,9 @@ License: **MIT**
 
 Source URL: `https://github.com/leMalla/factory-night-watch`
 
-The source URL should become publicly accessible when the repository is made
-public. The text below is ready to copy into the portal description after the
-candidate's final live test. The mod has not been uploaded yet.
+The repository is public and the mod is already listed in the portal.
+The maintainer confirmed the 0.3.10 live-test checklist on 2026-10-29.
+Use the text below for the new release; uploading to the portal is a separate step.
 
 ## Short description
 

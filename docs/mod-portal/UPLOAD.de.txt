@@ -1,16 +1,17 @@
-Factory Night Watch 0.3.7 – Mod-Portal vorbereiten
+Factory Night Watch 0.3.10 – Mod-Portal aktualisieren
 
-1. Auf https://mods.factorio.com/ mit deinem Factorio-Konto anmelden.
-2. Submit Mod öffnen und factory-night-watch_0.3.7.zip unverändert auswählen.
-   Nicht das gesamte Vorbereitungs-Paket hochladen!
-3. Felder aus listing.txt übernehmen.
-4. Inhalt von description.md als Beschreibung einfügen (ohne Dateinamen).
-5. Inhalt von faq.md in den FAQ-Bereich übernehmen, gegebenenfalls nach dem Anlegen.
-6. screenshot-circuit-condition.png in die Galerie laden. Die Fußzeile dieser
-   Aufnahme wurde kosmetisch retuschiert. Weitere Aufnahmen zeigen den Stand
-   vor der Korrektur der Speicheranzeige in 0.3.6.
-7. Vorschau kontrollieren und erst dann veröffentlichen.
+Der Maintainer hat die vorgeschlagene Spieltest-Runde am 29.10.2026 bestätigt.
 
-Das Vorschaubild ist bereits im Mod-ZIP als thumbnail.png enthalten.
-Das GitHub-Repository sollte vor dem Veröffentlichen öffentlich sein.
-Dieser Ordner und das Vorbereitungs-Paket veröffentlichen selbst nichts.
+1. Auf https://mods.factorio.com/ mit dem Konto dermalla anmelden.
+2. Die vorhandene Mod factory-night-watch öffnen und eine neue Version hochladen.
+3. factory-night-watch_0.3.10.zip unverändert auswählen.
+   Keine GitHub-Quellcode-ZIP und kein gesamtes Vorbereitungspaket hochladen.
+4. description.md als aktualisierte Beschreibung übernehmen.
+5. faq.md als aktualisierten FAQ-Text übernehmen.
+6. Vorschau und Versionsnummer kontrollieren und veröffentlichen.
+
+Das Mod-ZIP enthält thumbnail.png, MIT-Lizenz und changelog.txt einschließlich
+0.3.8 (Bereiche), 0.3.9 (Vorschau) und 0.3.10 (Gebäudeausnahmen).
+Die bestehenden Portalbilder können bleiben. Neue Aufnahmen der Ausnahmebereiche
+und der Gebäudeauswahl können bei Bedarf ergänzt werden.
+Diese Datei und die GitHub-Übernahme veröffentlichen nichts im Modportal.

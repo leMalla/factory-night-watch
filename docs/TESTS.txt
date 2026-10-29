@@ -115,3 +115,13 @@ circuit rule, verify its live value, save it, then test and acknowledge a safety
   monitor an excluded pole and still trigger normally, including missing-source fail-safe.
 - 22 installer/updater tests. Native Windows entity-picker appearance still needs
   an in-game smoke test; DLC integration was not rerun.
+
+0.3.10 maintainer acceptance (2026-10-29):
+The maintainer reported that the proposed live-client/server checklist passes.
+This covers area creation and persistence, saved/unsaved preview, zooming, return
+and save-and-return, building exclusion editing/discard, offline alarm behavior,
+independence of explicit circuit rules, acknowledgement and server restart.
+This report supersedes the pending live-smoke-test notes above for the released
+feature set. Exact DLC platform cases were not separately itemized; no additional
+automated DLC integration run is claimed. The report is maintainer confirmation,
+not a separately observed automated test.

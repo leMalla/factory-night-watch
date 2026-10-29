@@ -5,7 +5,7 @@
 Keep your cooperative Factorio factory running while everyone is offline, with
 configurable safety pauses when something needs attention.
 
-**Release candidate 0.3.7 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
+**Version 0.3.10 · Factorio 2.1 (base >= 2.1.23) · Space Age supported · English / Deutsch**
 
 [Deutsche Anleitung](docs/README.de.md) · [Validation](docs/TESTS.txt) ·
 [Changelog](mod/changelog.txt)
@@ -52,7 +52,7 @@ Build the distribution using Python 3 (standard library only):
 python3 tools/build.py
 ```
 
-Copy `dist/factory-night-watch_0.3.7.zip` into each client's Factorio `mods`
+Copy `dist/factory-night-watch_0.3.10.zip` into each client's Factorio `mods`
 directory without extracting it. Remove older ZIP versions and restart Factorio.
 All clients and the server need the same version. This development build is not
 yet published on the Factorio Mod Portal.
@@ -165,9 +165,11 @@ Portal drafts: [description](docs/MOD_PORTAL.md) and [FAQ](docs/MOD_PORTAL_FAQ.m
 
 Three independent pre-release reviews covered runtime behavior, GUI/state handling,
 and packaging/installer recovery. See [the 0.3.4 review record](docs/RELEASE_REVIEW.md)
-and [validation details](docs/TESTS.txt). The maintainer confirmed the 0.3.4 GUI
-in a real client; the network-selection UI has also been inspected in client screenshots. A full offline
-circuit-trigger test in the live save is still recommended.
+and [validation details](docs/TESTS.txt). On 2026-10-29, the maintainer confirmed
+the proposed 0.3.10 live-client/server checklist passes, including area preview,
+building exclusions, alarm behavior and persistence. Automated 0.3.10 validation
+includes 186 Lua GUI/logic checks, 60 base-only engine checks and 22 installer/updater tests.
+No new automated DLC integration run is claimed.
 Backups remain necessary. There is no separate platform-hub health rule.
 
 Licensed under the [MIT License](LICENSE). Copyright (c) 2026 dermalla.
