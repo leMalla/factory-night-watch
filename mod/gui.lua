@@ -1,9 +1,11 @@
 local G={}
 local C=require("circuits")
 local A=require("areas")
+local E=require("exclusions")
 local callbacks={}
 local ROOT="fnw_window"
-local LAYOUT=3
+local PREVIEW="fnw_area_preview"
+local LAYOUT=4
 -- Suppress only synchronous close notifications caused by our own teardown.
 local internal_close={}
 local build
@@ -31,11 +33,40 @@ local function settings_changed(d)
   end
   return false
 end
+local function stop_preview(p)
+  local d=ui(p)
+  if d.preview then A.clear(d.preview.objects);d.preview=nil end
+  local panel=p.gui.screen[PREVIEW]
+  if panel then panel.destroy() end
+end
+local function preview_panel(p)
+  local d=ui(p)
+  if not d.preview then return end
+  local panel=p.gui.screen[PREVIEW]
+  if not panel then
+    panel=p.gui.screen.add{type="frame",name=PREVIEW,direction="vertical"}
+    panel.style.width=400;panel.location={x=20,y=80}
+    local title=panel.add{type="label",caption=tr("area-preview"),style="frame_title"}
+    title.style.single_line=false;title.style.width=360
+    local status=panel.add{type="label",name="fnw_preview_status",caption=""}
+    status.style.single_line=false;status.style.width=360
+    local back=panel.add{type="button",name="fnw_preview_return",caption=tr("preview-return")}
+    back.style.width=360
+    local save=panel.add{type="button",name="fnw_preview_save",caption=tr("preview-save")}
+    save.style.width=360;save.tooltip=tr("preview-save-help")
+  end
+  local stale=settings_changed(d) or d.revision~=((storage.guard or {}).circuit_revision or 0)
+  panel.fnw_preview_status.caption=tr(stale and "preview-stale" or d.dirty and "preview-unsaved" or "preview-saved")
+  panel.fnw_preview_save.visible=d.dirty
+  panel.fnw_preview_save.enabled=p.admin and d.dirty
+  -- Do not assign player.opened: this panel must not intercept map interaction.
+end
 local function load(p)
   local d=ui(p);d.values={};d.baseline={}
   for _,k in ipairs(keys) do d.values[k]=opt(k);d.baseline[k]=opt(k) end
   local hours=opt("max-offline-hours")
   d.limit=hours>0;d.unit=hours%24==0 and 2 or 1;d.time=tostring(hours>0 and hours/(d.unit==2 and 24 or 1) or 7)
+  d.excluded_entities=E.list((storage.guard or {}).excluded_entities)
   d.areas=A.copy((storage.guard or {}).excluded_areas)
   d.circuits=C.copy((storage.guard or {}).circuits)
   d.revision=(storage.guard or {}).circuit_revision or 0
@@ -95,6 +126,11 @@ local function choose(r,option)
   r.wire=option and option.wire or 1
   r.place=option and C.location(option) or nil
 end
+local function excluded_caption(name)
+  if name=="" then return tr("choose-building") end
+  local prototype=prototypes.entity[name]
+  return prototype and prototype.localised_name or tr("missing-building",name)
+end
 local function circuit_editor(parent,p,i,r)
   local box=parent.add{type="frame",direction="vertical",style="inside_shallow_frame"}
   local head=box.add{type="flow",direction="horizontal"}
@@ -117,7 +153,12 @@ local function circuit_editor(parent,p,i,r)
   local status=label(box,"");status.name="fnw_c_status_"..i
 end
 function G.configure(c) callbacks=c end
+function G.close_preview(p)
+  if p and p.valid then stop_preview(p) end
+end
 function G.remove_player(index)
+  local d=storage.fnw_ui and storage.fnw_ui[index]
+  if d and d.preview then A.clear(d.preview.objects) end
   if storage.fnw_ui then storage.fnw_ui[index]=nil end
   internal_close[index]=nil
 end
@@ -125,13 +166,14 @@ function G.ensure(p)
   if not p or not p.valid then return end
   local legacy=p.gui.top.fnw_toggle;if legacy then legacy.destroy() end
   local d=ui(p)
+  if not d.excluded_entities then d.excluded_entities=E.list((storage.guard or {}).excluded_entities) end
   if not d.areas then d.areas=A.copy((storage.guard or {}).excluded_areas) end
   local old=window(p)
   if old and (old.tags.fnw_layout~=LAYOUT or not find(old,"fnw_tabs") or not find(old,"fnw_jump") or not find(old,"fnw_confirm_panel")) then destroy(p);state()[p.index]=nil end
   p.set_shortcut_available("fnw-open",true)
 end
 function G.refresh(p)
-  local f=window(p);if not f then return end
+  local f=window(p);if not f then preview_panel(p);return end
   local s=storage.guard or {};local d=ui(p)
   -- Clean forms track server changes. Dirty drafts retain their inputs and are
   -- checked against the captured baseline before they may change server state.
@@ -167,6 +209,9 @@ function G.refresh(p)
     for _,c in pairs(e.children) do permissions(c) end
   end
   permissions(f)
+  for i,name in ipairs(d.excluded_entities) do
+    find(f,"fnw_e_caption_"..i).caption=excluded_caption(name)
+  end
   for i,r in ipairs(d.circuits) do
     find(f,"fnw_c_network_"..i).caption=network_caption(r)
     local items,selected=choices(r)
@@ -230,6 +275,17 @@ build=function(p)
   label(rules,tr("simulation-help"))
   local adv=pages[3]
   label(adv,tr("exceptions"));checkbox(adv,p,"ignore-walls");checkbox(adv,p,"ignore-robots")
+  label(adv,tr("excluded-buildings"));label(adv,tr("excluded-buildings-help"))
+  if #d.excluded_entities==0 then label(adv,tr("no-excluded-buildings")) end
+  for i,name in ipairs(d.excluded_entities) do
+    local line=adv.add{type="flow",direction="horizontal"}
+    line.add{type="choose-elem-button",name="fnw_e_entity_"..i,elem_type="entity",
+      entity=prototypes.entity[name] and name or nil,elem_filters={{filter="flag",flag="player-creation"}},tags={fnw_edit=true}}
+    local caption=line.add{type="label",name="fnw_e_caption_"..i,caption=excluded_caption(name)}
+    caption.style.width=300;caption.style.single_line=false
+    button(line,"fnw_e_remove_"..i,"remove",true)
+  end
+  button(adv,"fnw_e_add","add-excluded-building",true)
   label(adv,tr("areas"));label(adv,tr("areas-help"))
   if #d.areas==0 then label(adv,tr("no-areas")) end
   for i,a in ipairs(d.areas) do
@@ -272,6 +328,7 @@ build=function(p)
   G.refresh(p)
 end
 function G.open(p)
+  stop_preview(p)
   G.ensure(p)
   if not ui(p).values or (not window(p) and not ui(p).selecting and not ui(p).selecting_area and not ui(p).dirty) then load(p) end
   build(p)
@@ -312,6 +369,8 @@ local function apply(p)
     count=count+1
   end
   if count==0 then feedback(p,"empty-force");return end
+  local excluded,exclusion_error=E.compile(d.excluded_entities,(storage.guard or {}).excluded_entities)
+  if not excluded then feedback(p,exclusion_error);return end
   local areas=A.copy(d.areas)
   if not A.validate(areas) then feedback(p,"invalid-area");return end
   local rules=C.copy(d.circuits)
@@ -324,6 +383,7 @@ local function apply(p)
   if d.revision~=(s.circuit_revision or 0) then feedback(p,"conflict");return end
   -- All fields and rules have been validated before modifying server state.
   for _,k in ipairs(keys) do if values[k]~=opt(k) then settings.global["fnw-"..k]={value=values[k]} end end
+  s.excluded_entities=excluded
   s.excluded_areas=areas
   s.circuits=rules;s.circuit_revision=(s.circuit_revision or 0)+1
   load(p);d.feedback=tr("saved");build(p)
@@ -348,6 +408,11 @@ local function changed(event)
     local t=numeric(d.time)
     if t then d.time=tostring(t*(d.unit==2 and 24 or 1)/(e.selected_index==2 and 24 or 1));find(window(p),"fnw_time").text=d.time end
     d.unit=e.selected_index
+  elseif name:match("^fnw_e_entity_(%d+)$") then
+    local index=tonumber(name:match("(%d+)$"))
+    if not d.excluded_entities[index] then return end
+    if e.elem_value and not prototypes.entity[e.elem_value] then feedback(p,"invalid-building");return end
+    d.excluded_entities[index]=e.elem_value or ""
   elseif name:match("^fnw_a_") then
     local field,index=name:match("^fnw_a_([a-z]+)_(%d+)$");index=tonumber(index)
     local area=index and d.areas[index]
@@ -378,8 +443,17 @@ script.on_event(defines.events.on_lua_shortcut,function(e)
 end)
 script.on_event(defines.events.on_gui_click,function(event)
   if not owned(event.element) then return end
-  local p=game.get_player(event.player_index);if not p or not window(p) then return end
+  local p=game.get_player(event.player_index);if not p then return end
   local d=ui(p);local name=event.element.name
+  if name=="fnw_preview_return" or name=="fnw_preview_save" then
+    if not d.preview then return end
+    local save=name=="fnw_preview_save"
+    if save and not p.admin then return end
+    d.tab=3;G.open(p)
+    if save then apply(p) end
+    return
+  end
+  if not window(p) then return end
   if name=="fnw_jump" then jump_to_alarm(p);return
   elseif name=="fnw_close" then request_close(p);return
   elseif name=="fnw_cancel" then d.confirm=nil;build(p);return
@@ -395,17 +469,25 @@ script.on_event(defines.events.on_gui_click,function(event)
   if area_index then
     local a=d.areas[area_index]
     if not a or not a.surface or not a.surface.valid then feedback(p,"jump-unavailable");return end
-    destroy(p)
+    stop_preview(p);destroy(p)
     local ok=pcall(function()
       p.set_controller{type=defines.controllers.remote,surface=a.surface,position={x=(a.left+a.right)/2,y=(a.top+a.bottom)/2}}
-      p.zoom=math.min(0.75,32/math.max(a.right-a.left,a.bottom-a.top))
-      A.draw(a,p)
+      p.zoom=math.max(0.03125,math.min(0.75,32/math.max(a.right-a.left,a.bottom-a.top)))
+      d.preview={objects=A.draw(a,p)}
+      preview_panel(p)
     end)
     if not ok then G.open(p);p.print(tr("jump-failed")) end
     return
   end
   if not p.admin then return end
-  if name=="fnw_area_add" then
+  if name=="fnw_e_add" then
+    if #d.excluded_entities>=E.limit then feedback(p,"building-limit");return end
+    d.excluded_entities[#d.excluded_entities+1]="";d.dirty=true;d.feedback=nil;build(p)
+  elseif name:match("^fnw_e_remove_(%d+)$") then
+    local index=tonumber(name:match("(%d+)$"))
+    if not d.excluded_entities[index] then return end
+    table.remove(d.excluded_entities,index);d.dirty=true;d.feedback=nil;build(p)
+  elseif name=="fnw_area_add" then
     if #d.areas>=A.limit then feedback(p,"area-limit");return end
     if not p.clear_cursor() then feedback(p,"cursor-busy");return end
     d.selecting=nil;d.selecting_area=true;destroy(p)

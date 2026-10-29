@@ -1,4 +1,4 @@
-# Factory Night Watch 0.3.7
+# Factory Night Watch 0.3.10
 
 <img src="../mod/thumbnail.png" alt="Factory Night Watch" width="320">
 
@@ -112,7 +112,7 @@ Der Installer enthält die ZIP bereits; Download-Zugangsdaten sind nicht nötig.
    mit neuestem Spielstand/Mods/Konfiguration an, ersetzt alte Mod-ZIPs, setzt `auto_pause=false`
    und prüft den Serverstart. Andere Container werden nicht bearbeitet.
 4. Auf ALLEN Clients die alte ZIP aus dem Mods-Ordner entfernen und die unveränderte neue
-   `factory-night-watch_0.3.7.zip` nach `%APPDATA%\Factorio\mods` kopieren. Nicht entpacken.
+   `factory-night-watch_0.3.10.zip` nach `%APPDATA%\Factorio\mods` kopieren. Nicht entpacken.
    Factorio neu starten. Alle Spieler und der Server brauchen dieselbe Version.
 
 Alternativer Serverpfad: `sudo bash ./install-factory-night-watch.sh /pfad/zum/factorio-projekt`.
@@ -184,9 +184,11 @@ Existing autosaves and daily backups remain necessary.
 Planeten/der Plattform ziehen, optional benennen und **Speichern**. Auch leere
 Flächen sind auswählbar; später dort errichtete Gebäude sind ebenfalls abgedeckt.
 Bis zu 64 Bereiche lassen sich einzeln deaktivieren, entfernen und ansehen.
-„Bereich ansehen“ öffnet die Fernansicht und zeichnet die Grenzen für zehn
-Simulationssekunden ein. Während einer Pause bleibt die Markierung entsprechend
-länger sichtbar. Die Pause bleibt bestehen.
+„Bereich ansehen“ öffnet die Fernansicht und zeigt die Grenzen dauerhaft in Welt-
+und Kartenansicht. Ein kleines Fenster zeigt offene Änderungen und bietet
+„Zurück zu Ausnahmebereichen“ sowie „Speichern und zurück“ für alle offenen
+Einstellungen. Ansehen allein speichert nichts. Die Markierung endet bei der Rückkehr,
+nicht beim Zoomen. Die Pause bleibt bestehen.
 
 Die Ausnahme gilt für **Zerstörungsalarme aller Gebäudetypen**, deren Mittelpunkt
 im Rechteck liegt. Obere/linke Grenze eingeschlossen, untere/rechte ausgeschlossen.
@@ -196,3 +198,20 @@ Umbenennen erhält die Zuordnung; ein gelöschter Planet überträgt sie nicht a
 Ersatz. Eigene Schaltungsregeln (auch fehlende Verbindungen/Quellen), Forschung und
 Zeitlimit bleiben aktiv. Bereiche werden mit dem Spielstand gespeichert. Änderungen
 verwenden Speichern/Verwerfen und den vorhandenen Schutz vor veralteten Admin-Entwürfen.
+
+## Zusätzliche Gebäudeausnahmen (ab 0.3.10)
+
+Unter **Erweitert → Zusätzliche Gebäudeausnahmen → Gebäudeausnahme hinzufügen**
+eine Gebäudeart im Auswahlfenster wählen und **Speichern**. Weitere Zeilen können
+hinzugefügt und entfernt werden. Beispielsweise lässt sich ein normales Fließband
+ausnehmen, während schnelle Fließbänder weiterhin überwacht werden. Jede Auswahl
+gilt für genau diese Variante in allen Qualitätsstufen und auf allen überwachten
+Planeten/Plattformen. Mauern/Tore und Roboter behalten ihre eigenen Schalter.
+
+Die Liste nimmt ausschließlich Zerstörungsalarme aus. Bereichsausnahmen ergänzen
+sie; Forschung, Offline-Zeitlimit und eigene Schaltungsregeln einschließlich
+fehlender Quellen/Verbindungen bleiben aktiv. Maximal 128 Einträge, Duplikate werden
+beim Speichern zusammengefasst. Nach dem Entfernen anderer Mods bleiben deren
+Ausnahmen mit internem Namen sichtbar und können entfernt werden. Sie verhindern
+nicht das Speichern anderer Einstellungen. Spielstandspeicherung, Speichern/Verwerfen
+und Schutz vor veralteten Admin-Entwürfen gelten auch für diese Liste.

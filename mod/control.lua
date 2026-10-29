@@ -1,6 +1,7 @@
 local Gui = require("gui")
 local Circuits = require("circuits")
 local Areas = require("areas")
+local Exclusions = require("exclusions")
 local function option(name) return settings.global["fnw-" .. name].value end
 local function state()
   storage.guard = storage.guard or {emergency_slot = 0}
@@ -147,7 +148,7 @@ script.on_event(defines.events.on_player_joined_game, function(event)
   Gui.refresh_all()
   if state().alarm then show_alarm(game.get_player(event.player_index)) end
 end)
-script.on_event(defines.events.on_player_left_game, function() sync_presence(); Gui.refresh_all() end)
+script.on_event(defines.events.on_player_left_game, function(event) Gui.close_preview(game.get_player(event.player_index)); sync_presence(); Gui.refresh_all() end)
 script.on_event(defines.events.on_player_created, function(event) Gui.ensure(game.get_player(event.player_index)) end)
 script.on_event(defines.events.on_player_promoted, function() Gui.refresh_all() end)
 script.on_event(defines.events.on_player_demoted, function() Gui.refresh_all() end)
@@ -163,7 +164,7 @@ script.on_event(defines.events.on_entity_died, function(event)
   if not active() or not offline() or state().alarm or not option("destruction-pause") then return end
   local entity = event.entity
   if not protected(entity) or not entity.has_flag("player-creation") then return end
-  if Areas.contains(state().excluded_areas,entity) then return end
+  if Areas.contains(state().excluded_areas,entity) or Exclusions.contains(state().excluded_entities,entity) then return end
   local kind = entity.type
   if kind == "character" or kind == "unit" then return end
   if option("ignore-walls") and (kind == "wall" or kind == "gate") then return end

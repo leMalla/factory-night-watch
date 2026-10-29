@@ -40,9 +40,20 @@ function A.contains(areas,entity)
   end
   return false
 end
+function A.clear(objects)
+  for _,object in ipairs(objects or {}) do if object.valid then object.destroy() end end
+end
 function A.draw(a,player)
-  return rendering.draw_rectangle{surface=a.surface,left_top={a.left,a.top},right_bottom={a.right,a.bottom},
-    color={r=0.2,g=0.8,b=1,a=1},width=3,filled=false,time_to_live=600,
-    players=player and {player} or nil}
+  local objects={}
+  local ok,err=pcall(function()
+    for _,mode in ipairs({"game","chart"}) do
+      objects[#objects+1]=rendering.draw_rectangle{surface=a.surface,
+        left_top={a.left,a.top},right_bottom={a.right,a.bottom},
+        color={r=0.2,g=0.8,b=1,a=1},width=3,filled=false,time_to_live=0,
+        render_mode=mode,players=player and {player} or nil}
+    end
+  end)
+  if not ok then A.clear(objects);error(err) end
+  return objects
 end
 return A

@@ -5,7 +5,7 @@
 Keep your cooperative Factorio factory running while everyone is offline, with
 configurable safety pauses when something needs attention.
 
-**Release candidate 0.3.7 · Factorio 2.1.23 · Space Age supported · English / Deutsch**
+**Version 0.3.10 · Factorio 2.1 (base >= 2.1.23) · Space Age supported · English / Deutsch**
 
 [Deutsche Anleitung](docs/README.de.md) · [Validation](docs/TESTS.txt) ·
 [Changelog](mod/changelog.txt)
@@ -52,7 +52,7 @@ Build the distribution using Python 3 (standard library only):
 python3 tools/build.py
 ```
 
-Copy `dist/factory-night-watch_0.3.7.zip` into each client's Factorio `mods`
+Copy `dist/factory-night-watch_0.3.10.zip` into each client's Factorio `mods`
 directory without extracting it. Remove older ZIP versions and restart Factorio.
 All clients and the server need the same version. This development build is not
 yet published on the Factorio Mod Portal.
@@ -91,14 +91,32 @@ network reads zero. A missing source entity or selected connector network trigge
 offline. Online, rules only show their live state. Multiple enabled rules act
 as OR: any one can pause the world. Clear the cause before acknowledging.
 
+## Additional building exclusions
+
+In **Advanced → Additional building exclusions → Add building exclusion**, select
+an entity using the native picker, then **Save**. Add/remove rows for individual
+building prototypes, such as a transport belt or gun turret. Each entry applies
+to that exact variant in every quality on all monitored surfaces. Other variants
+of the same class remain protected. The existing wall/gate and robot switches
+continue to apply independently.
+
+The list affects structure-loss alarms only. Area exclusions can be used alongside
+it; research, offline limits and explicit circuit rules (including missing-source
+fail-safes) stay active. Up to 128 entries are supported; duplicates are merged
+on save. Missing prototypes from removed mods remain listed by internal name and
+can be removed; they do not block saving other settings. The list is stored in
+the save and uses the same Save/Discard and multi-admin conflict checks.
+
 ## Excluded areas
 
 In **Advanced → Excluded areas → Draw excluded area**, drag a rectangle on the
 planet or platform, give it a name and **Save**. Empty land can be selected too;
 new buildings placed there are automatically covered. Up to 64 rectangles can be
 enabled/disabled, removed or inspected using **View area**. Viewing opens remote
-view and highlights the rectangle for 10 simulation seconds (while paused, the
-highlight remains until simulation resumes). The pause is not released.
+view with a persistent outline in world and map views. A small panel shows whether
+there are unsaved changes and offers **Back to excluded areas** or **Save and return**
+for all pending settings. Viewing alone never saves. Returning ends the preview
+and removes both outlines; zooming does not. The pause is not released.
 
 Exclusions suppress **structure-loss alarms only**, for every building type whose
 centre lies inside the rectangle. Top/left edges are included; bottom/right edges
@@ -147,9 +165,11 @@ Portal drafts: [description](docs/MOD_PORTAL.md) and [FAQ](docs/MOD_PORTAL_FAQ.m
 
 Three independent pre-release reviews covered runtime behavior, GUI/state handling,
 and packaging/installer recovery. See [the 0.3.4 review record](docs/RELEASE_REVIEW.md)
-and [validation details](docs/TESTS.txt). The maintainer confirmed the 0.3.4 GUI
-in a real client; the network-selection UI has also been inspected in client screenshots. A full offline
-circuit-trigger test in the live save is still recommended.
+and [validation details](docs/TESTS.txt). On 2026-10-29, the maintainer confirmed
+the proposed 0.3.10 live-client/server checklist passes, including area preview,
+building exclusions, alarm behavior and persistence. Automated 0.3.10 validation
+includes 186 Lua GUI/logic checks, 60 base-only engine checks and 22 installer/updater tests.
+No new automated DLC integration run is claimed.
 Backups remain necessary. There is no separate platform-hub health rule.
 
 Licensed under the [MIT License](LICENSE). Copyright (c) 2026 dermalla.

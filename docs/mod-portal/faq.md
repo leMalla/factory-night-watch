@@ -83,3 +83,19 @@ planet/platform, including future buildings. Top/left edges count; bottom/right
 edges do not. Areas can be disabled, removed or viewed. Only structure-loss alarms
 are excluded. Explicit circuit rules (including missing connections/sources),
 research and offline-time limits remain active.
+
+## Why does the area preview stay visible while zooming?
+
+The preview draws one outline in the world and another in the zoomed-out map.
+Both stay until you use Back to excluded areas, reopen the main GUI or disconnect.
+The return panel shows unsaved changes; Save and return applies all pending
+settings using normal validation and admin conflict checks. Viewing alone does
+not save, and returning does not resume a safety pause.
+
+## Can I ignore other building types besides walls and robots?
+
+Yes. Advanced → Additional building exclusions provides an entity picker and
+editable list. Select each exact building variant and Save. All qualities of that
+prototype are excluded from structure-loss alarms on all monitored surfaces.
+For example, excluding a transport belt does not exclude fast transport belts.
+Other safety rules stay active, including circuit rules using excluded buildings.

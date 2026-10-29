@@ -38,7 +38,7 @@ end)
 commands.add_command('fnw-it-areas','Integration test only',function(cmd)
   local args=helpers.json_to_table(cmd.parameter)
   if args.clear then state().excluded_areas={};return end
-  if args.draw then local object=Areas.draw(state().excluded_areas[1]);rcon.print(tostring(object.valid));object.destroy();return end
+  if args.draw then local objects=Areas.draw(state().excluded_areas[1]);rcon.print(tostring(#objects==2 and objects[1].valid and objects[2].valid and objects[1].render_mode=="game" and objects[2].render_mode=="chart" and objects[1].time_to_live==0 and objects[2].time_to_live==0));Areas.clear(objects);return end
   if args.probe then rcon.print(tostring(Areas.contains(state().excluded_areas,{surface=game.surfaces[args.surface],position={x=args.x,y=args.y}})));return end
   if args.status then
     local out={}
@@ -52,4 +52,11 @@ commands.add_command('fnw-it-areas','Integration test only',function(cmd)
   a.name=args.name or 'Engine exclusion';a.enabled=args.enabled~=false
   state().excluded_areas=state().excluded_areas or {}
   table.insert(state().excluded_areas,a)
+end)
+
+commands.add_command('fnw-it-exclusions','Integration test only',function(cmd)
+  local args=helpers.json_to_table(cmd.parameter)
+  if args.status then rcon.print(helpers.table_to_json(Exclusions.list(state().excluded_entities)));return end
+  local lookup,err=Exclusions.compile(args.names or {},state().excluded_entities)
+  assert(lookup,err);state().excluded_entities=lookup
 end)

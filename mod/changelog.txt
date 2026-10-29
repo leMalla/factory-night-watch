@@ -1,4 +1,18 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.3.10
+Date: 2026-10-28
+  Features:
+    - Select additional building prototypes to exclude from structure-loss alarms.
+    - Exclusions apply to all qualities and monitored surfaces; existing wall/robot switches remain.
+    - Save/discard, duplicate normalization and multi-admin conflict checks included.
+---------------------------------------------------------------------------------------------------
+Version: 0.3.9
+Date: 2026-10-27
+  Gui:
+    - Area preview now draws persistent outlines in world and map views.
+    - Add a non-modal return panel with explicit saved/unsaved status and Save and return.
+    - Clean preview outlines on return, disconnect or player removal.
+---------------------------------------------------------------------------------------------------
 Version: 0.3.8
 Date: 2026-10-27
   Features:

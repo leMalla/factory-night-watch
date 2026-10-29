@@ -96,3 +96,32 @@ circuit rule, verify its live value, save it, then test and acknowledge a safety
 - Prior Space Age tests cover 0.3.5; 0.3.8 was not rerun with DLC because this
   headless distribution contains only base. Platform exclusion behavior is covered
   in Lua tests. A live Windows test of drawing/viewing the region remains needed.
+
+0.3.9 preview usability (2026-10-27):
+- 159 Lua GUI/logic checks, including non-modal return/save panel, pending drafts,
+  world/chart render modes with unlimited lifetime, permission changes, stale
+  drafts, disconnect/player-removal cleanup and partial renderer failure cleanup.
+- 54 Factorio 2.1.23 base-only integration checks; verifies both persistent native
+  world/chart render objects. 22 installer/updater tests.
+- Actual zoom appearance and the return panel layout still require a Windows
+  client smoke test. No DLC integration rerun in this environment.
+
+0.3.10 building exclusions (2026-10-28):
+- 186 Lua GUI/logic checks: native entity chooser, localized labels, drafts,
+  save/discard, duplicates, clearing/removing, multi-admin conflicts, removed-mod
+  prototypes, quality independence, other variants, planets/platforms and wall switch.
+- 60 Factorio 2.1.23 base-only integration checks: genuine excluded/non-excluded
+  building deaths, clearing the list, deduplication and save/reload. Circuit tests
+  monitor an excluded pole and still trigger normally, including missing-source fail-safe.
+- 22 installer/updater tests. Native Windows entity-picker appearance still needs
+  an in-game smoke test; DLC integration was not rerun.
+
+0.3.10 maintainer acceptance (2026-10-29):
+The maintainer reported that the proposed live-client/server checklist passes.
+This covers area creation and persistence, saved/unsaved preview, zooming, return
+and save-and-return, building exclusion editing/discard, offline alarm behavior,
+independence of explicit circuit rules, acknowledgement and server restart.
+This report supersedes the pending live-smoke-test notes above for the released
+feature set. Exact DLC platform cases were not separately itemized; no additional
+automated DLC integration run is claimed. The report is maintainer confirmation,
+not a separately observed automated test.
