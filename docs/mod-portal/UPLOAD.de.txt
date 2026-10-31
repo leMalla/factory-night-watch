@@ -1,6 +1,9 @@
-Factory Night Watch 0.3.10 – Mod-Portal aktualisieren
+Factory Night Watch 0.3.10 – Veröffentlichung und künftige Portal-Updates
 
+0.3.10 ist seit dem 31.10.2026 im Modportal veröffentlicht.
 Der Maintainer hat die vorgeschlagene Spieltest-Runde am 29.10.2026 bestätigt.
+Die folgenden Schritte dienen als Vorlage für künftige Updates; dabei die
+Versionsnummer und das passende ZIP an die neue Version anpassen.
 
 1. Auf https://mods.factorio.com/ mit dem Konto dermalla anmelden.
 2. Die vorhandene Mod factory-night-watch öffnen und eine neue Version hochladen.
