@@ -7,6 +7,9 @@ configurable safety pauses when something needs attention.
 
 **Version 0.3.10 · Factorio 2.1 (base >= 2.1.23) · Space Age supported · English / Deutsch**
 
+[Download from the Factorio Mod Portal](https://mods.factorio.com/mod/factory-night-watch)
+— 0.3.10 published on 2026-10-31.
+
 [Deutsche Anleitung](docs/README.de.md) · [Validation](docs/TESTS.txt) ·
 [Changelog](mod/changelog.txt)
 
@@ -46,7 +49,11 @@ when someone joins. AFK players still count as online.
 
 ## Install
 
-Build the distribution using Python 3 (standard library only):
+Install **Factory Night Watch** through Factorio’s mod manager or download it
+from the [Mod Portal](https://mods.factorio.com/mod/factory-night-watch).
+Use the same version on the server and all clients.
+
+To build a package from this repository instead, use Python 3 (standard library only):
 
 ```sh
 python3 tools/build.py
@@ -54,8 +61,8 @@ python3 tools/build.py
 
 Copy `dist/factory-night-watch_0.3.10.zip` into each client's Factorio `mods`
 directory without extracting it. Remove older ZIP versions and restart Factorio.
-All clients and the server need the same version. This development build is not
-yet published on the Factorio Mod Portal.
+All clients and the server need the same version. The published 0.3.10 is available
+on the Factorio Mod Portal.
 
 Open the bottom-right radar shortcut, or use `/fnw-gui`. `/fnw-status` is readable
 by everyone; `/fnw-resume`, `/fnw-test-pause` and `/fnw-set` require an admin.
@@ -159,7 +166,9 @@ Developed with AI-assisted coding tools. Maintained by **dermalla**. The install
 mod runs normal Factorio scripts and does not use an AI service during play.
 AI tools were used for code generation, documentation and review.
 
-Portal drafts: [description](docs/MOD_PORTAL.md) and [FAQ](docs/MOD_PORTAL_FAQ.md).
+Portal text sources: [description](docs/mod-portal/description.md) and
+[FAQ](docs/mod-portal/faq.md). See [release notes](docs/releases/0.3.10.md) for the
+published version and validation record.
 
 ## Release readiness
 

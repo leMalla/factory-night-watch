@@ -85,8 +85,23 @@ Nur ZIP und Installer bauen, ohne Serverzugriff und ohne Neustart:
 Server und Clients müssen dieselbe Mod-Version haben. Dieser Befehl aktualisiert
 den Docker-Server; ein laufendes Windows-Spiel wird dadurch nicht geändert.
 Die erzeugte Mod-ZIP lässt sich in den lokalen Factorio-Mods-Ordner kopieren.
-Nach Veröffentlichung im Factorio-Modportal kann Factorio die normale
+Die Mod ist im [Factorio-Modportal](https://mods.factorio.com/mod/factory-night-watch)
+veröffentlicht. Für dort verfügbare Versionen kann Factorio die normale
 Mod-Synchronisierung beim Beitritt übernehmen.
+
+## Vorschauversionen testen
+
+Vorschauversionen liegen auf eigenen Entwicklungsbranches. Einmalig einen
+solchen Branch installieren:
+
+```bash
+~/.local/bin/factorio-mod-update --ref BRANCHNAME
+```
+
+Die Auswahl gilt nur für diesen Aufruf. Server und Clients benötigen auch beim
+Testen dieselbe Mod-Version. Nach Freigabe und Übernahme nach `main` wieder den
+normalen Befehl ohne `--ref` verwenden. Bereits zusammengeführte Vorschaubranches
+werden aufgeräumt; sie sind keine dauerhaften Updatekanäle.
 
 ## Rücksetzpunkte
 

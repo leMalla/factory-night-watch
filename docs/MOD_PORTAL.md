@@ -10,7 +10,7 @@ License: **MIT**
 
 Source URL: `https://github.com/leMalla/factory-night-watch`
 
-The repository is public and the mod is already listed in the portal.
+The repository is public. Version 0.3.10 was published on the Mod Portal on 2026-10-31.
 The maintainer confirmed the 0.3.10 live-test checklist on 2026-10-29.
 Use the text below for the new release; uploading to the portal is a separate step.
 
